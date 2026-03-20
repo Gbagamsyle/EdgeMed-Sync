@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import Dashboard from '../pages/dashboard/Dashboard'
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
+import ProtectedRoute from './ProtectedRoute'
 import Patients from '../pages/patients/Patients'
 import AddPatient from '../pages/patients/AddPatient'
 import PatientProfile from '../pages/patients/PatientProfile'
@@ -21,7 +22,7 @@ function AppRoutes() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
 
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="patients" element={<Patients />} />
           <Route path="patients/add" element={<AddPatient />} />

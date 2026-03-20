@@ -73,7 +73,12 @@ h1,
 h2 {
   font-family: var(--heading);
   font-weight: 600;
-  color: var(--text-h) !important;
+  color: var(--text-h);
+}
+
+/* Use this utility for explicitly dark headings when required */
+.heading-dark {
+  color: #0f172a !important;
 }
 
 h1 {

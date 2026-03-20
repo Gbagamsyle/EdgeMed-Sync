@@ -20,12 +20,18 @@ export default function Homepage() {
             <Link className="hover:text-slate-900" to="/auth/login">Contact</Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               to="/auth/register"
               className="rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-sky-700"
             >
-              Signup / Login
+              Sign Up
+            </Link>
+            <Link
+              to="/auth/login"
+              className="rounded-full border border-sky-600 px-5 py-2.5 text-sm font-semibold text-sky-600 bg-white/90 transition hover:bg-sky-50"
+            >
+              Login
             </Link>
           </div>
         </header>
