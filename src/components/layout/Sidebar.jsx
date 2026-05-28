@@ -30,7 +30,7 @@ export default function Sidebar() {
   const navItems = [...commonItems, ...(roleItems[role] || roleItems.receptionist)]
 
   return (
-    <aside className="h-screen w-60 overflow-y-auto border-r border-sky-700 bg-sky-600 text-white shadow-xl">
+    <aside className="fixed left-0 top-24 h-[calc(100vh-6rem)] w-60 overflow-y-auto border-r border-sky-700 bg-sky-600 text-white shadow-xl">
       <div className="h-full p-4">
         <section className="mb-4 rounded-xl border border-sky-700 bg-sky-700/80 p-3 shadow-sm">
           <div className="flex items-center gap-2">
