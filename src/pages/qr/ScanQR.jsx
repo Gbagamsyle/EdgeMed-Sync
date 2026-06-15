@@ -2,9 +2,8 @@ import QRScanner from '../../components/qr/QRScanner'
 
 export default function ScanQR() {
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">Scan QR</h1>
+    <main className="min-h-screen bg-slate-50 p-6">
       <QRScanner />
-    </div>
+    </main>
   )
 }

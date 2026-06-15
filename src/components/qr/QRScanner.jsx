@@ -1,221 +1,358 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getPatientById } from '../../services/patientService'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
+import { lookupPatientByDID, extractDIDFromQR, validateDID, isCameraSupported, requestCameraPermission } from '../../services/qrService'
+import Button from '../ui/Button'
+import Card from '../ui/Card'
 
-export default function QRScanner({ onDetected } = {}) {
-  const videoRef = useRef(null)
-  const fileInputRef = useRef(null)
-  const [error, setError] = useState('')
+export default function QRScanner() {
+  const html5QrcodeRef = useRef(null)
   const [scanning, setScanning] = useState(false)
-  const [result, setResult] = useState(null)
-  const [foundPatient, setFoundPatient] = useState(null)
-  const navigate = useNavigate()
+  const [scannedDID, setScannedDID] = useState(null)
+  const [patient, setPatient] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(() => (isCameraSupported() ? null : 'Camera access is not supported in your browser.'))
+  const [cameraSupported] = useState(() => isCameraSupported())
+  const [cameraPermission, setCameraPermission] = useState(null)
+  const [manualDID, setManualDID] = useState('')
 
-  useEffect(() => {
-    let stream = null
-    let rafId = null
-    let detector = null
+  
 
-    const stopStream = () => {
-      if (rafId) cancelAnimationFrame(rafId)
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop())
-        stream = null
-      }
-      setScanning(false)
+  
+  // Lookup patient by DID
+  const lookupPatient = useCallback(async (did) => {
+    setLoading(true)
+    setError(null)
+    setPatient(null)
+
+    const result = await lookupPatientByDID(did)
+    
+    if (result.error) {
+      setError(result.error)
+    } else {
+      setPatient(result.data)
     }
-
-    const start = async () => {
-      setError('')
-      setResult(null)
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Camera access is not supported in this browser.')
-        return
-      }
-
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
-        }
-
-        if ('BarcodeDetector' in window) {
-          try {
-            detector = new BarcodeDetector({ formats: ['qr_code'] })
-          } catch (err) {
-            detector = null
-          }
-        }
-
-        if (!detector) {
-          setError('BarcodeDetector API not available. Use image upload fallback.')
-          setScanning(true)
-          return
-        }
-
-        setScanning(true)
-
-        const scan = async () => {
-          try {
-            const codes = await detector.detect(videoRef.current)
-            if (codes && codes.length) {
-                const value = codes[0].rawValue || codes[0].raw_data || codes[0].raw
-                setResult(value)
-                onDetected?.(value)
-                // lookup patient by id (common QR encodes patient id)
-                try {
-                  const { data, error } = await getPatientById(value)
-                  if (!error && data) setFoundPatient(data)
-                } catch (e) {
-                  // ignore
-                }
-                stopStream()
-                return
-              }
-          } catch (e) {
-            // ignore detection errors
-          }
-          rafId = requestAnimationFrame(scan)
-        }
-
-        rafId = requestAnimationFrame(scan)
-      } catch (err) {
-        setError(err.message || String(err))
-      }
-    }
-
-    start()
-    return () => stopStream()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    setLoading(false)
   }, [])
 
-  const handleFile = async (e) => {
-    const file = e?.target?.files && e.target.files[0]
-    if (!file) return
-    setError('')
-    setResult(null)
-
+  // Stop scanner
+  const stopScanner = useCallback(async () => {
     try {
-      // try BarcodeDetector first
-      if ('BarcodeDetector' in window) {
-        try {
-          const imgBitmap = await createImageBitmap(file)
-          const detector = new BarcodeDetector({ formats: ['qr_code'] })
-          const codes = await detector.detect(imgBitmap)
-          if (codes && codes.length) {
-            const value = codes[0].rawValue || codes[0].raw_data || codes[0].raw
-            setResult(value)
-            onDetected?.(value)
-            try {
-              const { data, error } = await getPatientById(value)
-              if (!error && data) setFoundPatient(data)
-            } catch (e) {}
-            return
-          }
-        } catch (err) {
-          // fallthrough to jsQR fallback
+      if (html5QrcodeRef.current) {
+        const state = html5QrcodeRef.current.getState()
+        if (state !== Html5QrcodeScannerState.NOT_STARTED) {
+          await html5QrcodeRef.current.clear()
+          html5QrcodeRef.current = null
         }
       }
-
-      // Fallback: dynamic load jsQR and decode via canvas
-      if (!window.jsQR) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement('script')
-          s.src = 'https://unpkg.com/jsqr/dist/jsQR.js'
-          s.onload = resolve
-          s.onerror = () => reject(new Error('Failed to load jsQR'))
-          document.head.appendChild(s)
-        })
-      }
-
-      const img = new Image()
-      const objUrl = URL.createObjectURL(file)
-      img.src = objUrl
-      await new Promise((res) => (img.onload = res))
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const code = window.jsQR(imageData.data, canvas.width, canvas.height)
-      if (code && code.data) {
-        const value = code.data
-        setResult(value)
-        onDetected?.(value)
-        try {
-          const { data, error } = await getPatientById(value)
-          if (!error && data) setFoundPatient(data)
-        } catch (e) {}
-      } else {
-        setError('No QR code found in image')
-      }
-      // release object URL
-      URL.revokeObjectURL(objUrl)
+      setScanning(false)
     } catch (err) {
-      setError(err.message || String(err))
+      console.error('[QRScanner] Stop error:', err)
     }
+  }, [])
+
+  // Handle QR scan errors (silent - logs to console only)
+  const onScanError = useCallback((error) => {
+    // Silently ignore scanning errors - they're common during scanning
+    // Only log critical errors
+    if (!error.includes('No QR code found')) {
+      console.debug('[QRScanner] Scan error:', error)
+    }
+  }, [])
+
+  // Handle successful QR scan
+  const onScanSuccess = useCallback(async (decodedText) => {
+    console.log('🔍 QR scanned:', decodedText)
+    
+    // Extract DID from QR code
+    const did = extractDIDFromQR(decodedText)
+    
+    if (!did) {
+      setError('Invalid QR code. Expected a patient DID (did:cdss:...)')
+      return
+    }
+
+    // Stop scanner to prevent multiple scans
+    await stopScanner()
+    setScannedDID(did)
+
+    // Lookup patient
+    await lookupPatient(did)
+  }, [stopScanner, lookupPatient])
+
+  // Initialize QR scanner
+  const initScanner = useCallback(async () => {
+    if (!cameraSupported) {
+      setError('Camera not supported. Please use a modern browser.')
+      return
+    }
+
+    // Check permissions first
+    const permResult = await requestCameraPermission()
+    if (permResult.error) {
+      setCameraPermission('denied')
+      setError(permResult.error)
+      return
+    }
+
+    setCameraPermission('granted')
+
+    try {
+      if (!html5QrcodeRef.current) {
+        html5QrcodeRef.current = new Html5QrcodeScanner(
+          'qr-reader',
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            disableFlip: false,
+            facingMode: 'environment'
+          },
+          false
+        )
+      }
+
+      const scanner = html5QrcodeRef.current
+
+      await scanner.render(onScanSuccess, onScanError)
+      setScanning(true)
+      setError(null)
+    } catch (err) {
+      console.error('[QRScanner] Init error:', err)
+      setError(`Failed to start camera: ${err.message}`)
+      setScanning(false)
+    }
+  }, [cameraSupported, onScanSuccess, onScanError])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      void stopScanner()
+    }
+  }, [stopScanner])
+
+
+  // Handle manual DID entry
+  const handleManualLookup = async (e) => {
+    e.preventDefault()
+    
+    if (!manualDID.trim()) {
+      setError('Please enter a DID')
+      return
+    }
+
+    if (!validateDID(manualDID.trim())) {
+      setError('Invalid DID format. Expected: did:cdss:xxxxxxxxxxxxxxxx')
+      return
+    }
+
+    setScannedDID(manualDID.trim())
+    await lookupPatient(manualDID.trim())
+  }
+
+  // Reset state
+  const handleReset = async () => {
+    await stopScanner()
+    setScannedDID(null)
+    setPatient(null)
+    setError(null)
+    setManualDID('')
+  }
+
+  // Start scanning
+  const handleStartScanning = async () => {
+    setError(null)
+    setManualDID('')
+    await initScanner()
   }
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-2xl overflow-hidden border border-slate-200 bg-black/5">
-        <video ref={videoRef} className="w-full h-60 object-cover bg-black" playsInline muted />
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Patient Check-In</h2>
+        <p className="mt-1 text-sm text-slate-500">Scan a patient's QR code or enter their DID manually.</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-700"
-        >
-          Restart Camera
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-white hover:shadow"
-          >
-            Upload image
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+      {/* Main Content */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Scanner Section */}
+        <div className="lg:col-span-2">
+          <Card className="p-6">
+            {!scanning && !scannedDID ? (
+              <div className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100">
+                  <span className="material-symbols-outlined text-3xl text-sky-600">qr_code_2</span>
+                </div>
+                
+                {!cameraSupported || cameraPermission === 'denied' ? (
+                  <div className="space-y-4">
+                    <div className="rounded-lg bg-red-50 p-4 text-left">
+                      <p className="text-sm font-medium text-red-900">
+                        {!cameraSupported 
+                          ? '📷 Camera not supported' 
+                          : '🔒 Camera permission denied'}
+                      </p>
+                      <p className="mt-1 text-xs text-red-700">
+                        {!cameraSupported
+                          ? 'Your browser does not support camera access. Use the manual entry below.'
+                          : 'Please enable camera access in your browser settings to use the scanner.'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Ready to Scan</h3>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Click the button below to start scanning patient QR codes.
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleStartScanning}
+                  disabled={!cameraSupported || cameraPermission === 'denied'}
+                  className="mt-4 w-full"
+                >
+                  <span className="material-symbols-outlined mr-2 text-base">photo_camera</span>
+                  Start Camera Scanner
+                </Button>
+              </div>
+            ) : scanning ? (
+              <div>
+                <div id="qr-reader" className="rounded-lg overflow-hidden" />
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-slate-600 mb-3">Position QR code in the frame</p>
+                  <Button 
+                    onClick={stopScanner} 
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Stop Scanning
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              scannedDID && (
+                <div className="space-y-4">
+                  <div className="rounded-lg bg-green-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">✓</span>
+                      <div className="text-left">
+                        <h4 className="font-semibold text-green-900">QR Code Scanned</h4>
+                        <p className="mt-1 break-all text-xs text-green-700 font-mono">{scannedDID}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleReset}
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Scan Another
+                  </Button>
+                </div>
+              )
+            )}
+
+            {error && (
+              <div className="mt-4 rounded-lg bg-red-50 p-4">
+                <p className="text-sm font-medium text-red-900">Error</p>
+                <p className="mt-1 text-xs text-red-700">{error}</p>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Manual Entry & Results Section */}
+        <div className="space-y-6">
+          {/* Manual DID Entry */}
+          <Card className="p-6">
+            <h3 className="mb-4 font-semibold text-slate-900">Manual Entry</h3>
+            <form onSubmit={handleManualLookup} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Patient DID
+                </label>
+                <input
+                  type="text"
+                  value={manualDID}
+                  onChange={(e) => setManualDID(e.target.value)}
+                  placeholder="did:cdss:..."
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                />
+              </div>
+              <Button 
+                type="submit"
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? 'Searching...' : 'Look Up Patient'}
+              </Button>
+            </form>
+          </Card>
+
+          {/* Patient Results */}
+          {patient && (
+            <Card className="p-6 border-green-200 bg-green-50/50">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-slate-900">✓ Patient Found</h3>
+                
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <p className="text-xs text-slate-500">Name</p>
+                    <p className="font-medium text-slate-900">{patient.full_name}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-slate-500">Phone</p>
+                    <p className="font-medium text-slate-900">{patient.phone}</p>
+                  </div>
+                  
+                  {patient.gender && (
+                    <div>
+                      <p className="text-xs text-slate-500">Gender</p>
+                      <p className="font-medium text-slate-900 capitalize">{patient.gender}</p>
+                    </div>
+                  )}
+                  
+                  {patient.blood_group && (
+                    <div>
+                      <p className="text-xs text-slate-500">Blood Group</p>
+                      <p className="font-medium text-slate-900">{patient.blood_group}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs text-slate-500">DID</p>
+                    <p className="font-mono text-xs text-slate-600 break-all">{patient.did}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-green-200 pt-3">
+                  <Button className="w-full" onClick={handleReset}>
+                    Check In Another Patient
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {loading && (
+            <Card className="p-6 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-600">
+                <div className="animate-spin">⌛</div>
+                <span>Searching...</span>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 
-      {result && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Detected: {result}</div>
-      )}
-      {foundPatient && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-slate-900">{foundPatient.full_name}</div>
-              <div className="text-xs text-slate-500">{foundPatient.phone || foundPatient.email || ''}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => navigate(`/dashboard/patients/${foundPatient.id}`)}
-                className="rounded-md border border-slate-200 px-3 py-1 text-sm"
-              >
-                View Profile
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard/vitals', { state: { selectedPatientId: foundPatient.id } })}
-                className="rounded-md bg-sky-600 px-3 py-1 text-sm font-semibold text-white hover:bg-sky-700"
-              >
-                Open Vitals
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</div>}
-
-      <div className="text-xs text-slate-500">Tip: allow camera access and point the camera at the QR code.</div>
+      {/* Camera Support Info */}
+      <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
+        <p className="font-medium">📱 Quick Tip</p>
+        <p className="mt-1">For best results on mobile devices, hold the phone steady and point the camera at the QR code from about 6 inches away.</p>
+      </div>
     </div>
   )
 }

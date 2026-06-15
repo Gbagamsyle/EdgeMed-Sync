@@ -14,9 +14,14 @@ export default function AddPatient() {
     phone: '',
     gender: '',
     blood_group: '',
-    address: ''
+    address: '',
+    pin: ''
   })
   const [status, setStatus] = useState({ type: '', message: '' })
+  const [qrCode, setQrCode] = useState(null)
+  const [did, setDid] = useState(null)
+
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -40,6 +45,11 @@ export default function AddPatient() {
       return
     }
 
+    if (!form.pin || !/^\d{4}$/.test(form.pin)) {
+      setStatus({ type: 'error', message: 'Please enter a 4-digit patient PIN for QR recovery.' })
+      return
+    }
+
     const { data, error } = await createPatient(payload)
 
     if (error) {
@@ -47,9 +57,23 @@ export default function AddPatient() {
       return
     }
 
-    setStatus({ type: 'success', message: 'Patient added successfully.' })
+    const identityResponse = await fetch(`${BACKEND_URL}/api/identity/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: data.id, pin: form.pin })
+    })
+
+    const identityData = await identityResponse.json()
+    if (!identityResponse.ok) {
+      setStatus({ type: 'error', message: identityData.error || 'Failed to generate patient QR code.' })
+      return
+    }
+
+    setStatus({ type: 'success', message: 'Patient added and QR generated successfully.' })
+    setQrCode(identityData.qrCode)
+    setDid(identityData.did)
     console.log('New patient', data)
-    setForm({ first_name: '', last_name: '', other_names: '', email: '', nin: '', phone: '', gender: '', blood_group: '', address: '' })
+    setForm({ first_name: '', last_name: '', other_names: '', email: '', nin: '', phone: '', gender: '', blood_group: '', address: '', pin: '' })
   }
 
   return (
@@ -106,6 +130,22 @@ export default function AddPatient() {
               <span className="text-sm font-medium text-slate-700">Phone</span>
               <Input name="phone" value={form.phone} onChange={handleChange} placeholder="08012345678" />
             </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">4-Digit PIN</span>
+              <Input
+                name="pin"
+                value={form.pin}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 4)
+                  setForm({ ...form, pin: value })
+                }}
+                placeholder="1234"
+                maxLength={4}
+                inputMode="numeric"
+              />
+              <p className="text-xs text-slate-500">Used to recover QR/identity if lost.</p>
+            </label>
           </div>
         </Card>
 
@@ -161,6 +201,60 @@ export default function AddPatient() {
             </Button>
           </div>
         </div>
+
+        {qrCode ? (
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 mt-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Patient QR Code</h2>
+            <div className="flex flex-col items-center gap-4">
+              <img src={qrCode} alt="Patient QR code" className="w-56 h-56 rounded-3xl border border-slate-200" />
+              <p className="text-sm text-slate-600 break-all">DID: {did}</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    const link = document.createElement('a')
+                    link.href = qrCode
+                    link.download = `patient-${did}.png`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                  }}
+                >
+                  Download QR
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    const printWindow = window.open('', '', 'width=600,height=600')
+                    if (!printWindow) return
+                    printWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>Print Patient QR</title>
+                        </head>
+                        <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0;padding:20px;">
+                          <h1 style="font-family:sans-serif;">Patient QR</h1>
+                          <img src="${qrCode}" style="max-width:100%;height:auto;margin-top:20px;" />
+                          <p style="font-family:sans-serif;margin-top:10px;word-break:break-all;">DID: ${did}</p>
+                        </body>
+                      </html>
+                    `)
+                    printWindow.document.close()
+                    printWindow.focus()
+                    setTimeout(() => {
+                      printWindow.print()
+                      printWindow.close()
+                    }, 500)
+                  }}
+                >
+                  Print QR
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </form>
   )
 }
