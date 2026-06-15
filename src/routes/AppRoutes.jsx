@@ -8,9 +8,11 @@ import ProtectedRoute from './ProtectedRoute'
 import Patients from '../pages/patients/Patients'
 import AddPatient from '../pages/patients/AddPatient'
 import PatientProfile from '../pages/patients/PatientProfile'
+import EditPatient from '../pages/patients/EditPatient'
 import PatientRecords from '../pages/patients/PatientRecords'
 import Diagnosis from '../pages/diagnosis/Diagnosis'
 import ScanQR from '../pages/qr/ScanQR'
+import Vitals from '../pages/vitals/Vitals'
 import Reports from '../pages/reports/Reports'
 import Settings from '../pages/settings/Settings'
 
@@ -27,8 +29,10 @@ function AppRoutes() {
           <Route path="patients" element={<Patients />} />
           <Route path="patients/add" element={<AddPatient />} />
           <Route path="patients/:id" element={<PatientProfile />} />
+          <Route path="patients/:id/edit" element={<EditPatient />} />
           <Route path="patients/:id/records" element={<PatientRecords />} />
           <Route path="diagnosis" element={<Diagnosis />} />
+          <Route path="vitals" element={<Vitals />} />
           <Route path="qr/scan" element={<ScanQR />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />

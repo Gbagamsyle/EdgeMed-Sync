@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../services/supabaseClient'
 
@@ -7,6 +8,22 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const fetchProfile = async (id) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('fetchProfile error:', error)
+      setProfile(null)
+      return
+    }
+
+    setProfile(data ?? null)
+  }
 
   useEffect(() => {
     const getSession = async () => {
@@ -33,22 +50,6 @@ export function AuthProvider({ children }) {
 
     return () => listener.subscription.unsubscribe()
   }, [])
-
-  const fetchProfile = async (id) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      console.error('fetchProfile error:', error)
-      setProfile(null)
-      return
-    }
-
-    setProfile(data)
-  }
 
   return (
     <AuthContext.Provider value={{ user, profile, loading }}>

@@ -4,11 +4,11 @@ import Sidebar from './Sidebar'
 
 export default function DashboardLayout() {
   return (
-    <div className="h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-100">
       <Navbar />
-      <div className="flex pt-24">
+      <div className="flex pt-24 min-h-[calc(100vh-6rem)] bg-slate-100">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6 ml-60">
+        <main className="flex-1 min-h-[calc(100vh-6rem)] overflow-y-auto bg-slate-100 p-6 ml-60">
           <Outlet />
         </main>
       </div>

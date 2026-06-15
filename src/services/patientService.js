@@ -33,3 +33,7 @@ export const getPatients = async () => {
 export const getPatientById = async (id) => {
   return await supabase.from('patients').select('*').eq('id', id).single()
 }
+
+export const updatePatient = async (id, payload) => {
+  return await supabase.from('patients').update(payload).eq('id', id).select().single()
+}

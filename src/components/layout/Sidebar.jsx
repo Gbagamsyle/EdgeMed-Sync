@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 const commonItems = [
-  { to: '/dashboard', label: 'Overview', icon: 'dashboard' },
+  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/dashboard/qr/scan', label: 'QR Scan', icon: 'qr_code_scanner' },
 ]
 
@@ -22,11 +22,16 @@ const roleItems = {
     { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
     { to: '/dashboard/patients/add', label: 'Add Patient', icon: 'person_add' },
   ],
+  nurse: [
+    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
+    { to: '/dashboard/vitals', label: 'Vitals', icon: 'monitor_heart' },
+  ],
 }
 
 export default function Sidebar() {
   const { profile } = useAuth()
-  const role = (profile?.role || 'receptionist').toLowerCase()
+  const rawRole = profile?.role
+  const role = rawRole ? String(rawRole).trim().toLowerCase() : 'receptionist'
   const navItems = [...commonItems, ...(roleItems[role] || roleItems.receptionist)]
 
   return (
