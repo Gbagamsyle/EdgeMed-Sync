@@ -1,38 +1,79 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
 import { lookupPatientByDID, extractDIDFromQR, validateDID, isCameraSupported, requestCameraPermission } from '../../services/qrService'
+import { patientCache } from '../../utils/dexieDb'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
 export default function QRScanner() {
+  const navigate = useNavigate()
   const html5QrcodeRef = useRef(null)
   const [scanning, setScanning] = useState(false)
   const [scannedDID, setScannedDID] = useState(null)
   const [patient, setPatient] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [cachedPatient, setCachedPatient] = useState(false)
   const [error, setError] = useState(() => (isCameraSupported() ? null : 'Camera access is not supported in your browser.'))
   const [cameraSupported] = useState(() => isCameraSupported())
   const [cameraPermission, setCameraPermission] = useState(null)
   const [manualDID, setManualDID] = useState('')
+  const [isOnline] = useState(navigator.onLine)
 
   
 
   
-  // Lookup patient by DID
+  // Lookup patient by DID with offline cache fallback
   const lookupPatient = useCallback(async (did) => {
     setLoading(true)
     setError(null)
     setPatient(null)
 
-    const result = await lookupPatientByDID(did)
-    
-    if (result.error) {
-      setError(result.error)
-    } else {
-      setPatient(result.data)
+    try {
+      if (!navigator.onLine) {
+        throw new Error('Offline mode: loading cached patient data')
+      }
+
+      const result = await lookupPatientByDID(did)
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      const patientData = result.data
+      setPatient(patientData)
+      setCachedPatient(false)
+
+      // Cache patient locally for offline access
+      try {
+        await patientCache.add({
+          id: patientData.id,
+          did: patientData.did,
+          full_name: patientData.full_name,
+          phone: patientData.phone,
+          gender: patientData.gender,
+          blood_group: patientData.blood_group,
+          email: patientData.email,
+          public_key: patientData.public_key,
+          created_at: patientData.created_at
+        })
+        console.log('✓ Patient cached locally for offline access')
+      } catch (err) {
+        console.warn('Failed to cache patient locally:', err)
+      }
+    } catch (err) {
+      console.warn('[QRScanner] lookup error:', err.message)
+      const cachedPatientData = await patientCache.getByDid(did)
+      if (cachedPatientData) {
+        setPatient(cachedPatientData)
+        setCachedPatient(true)
+        setError('Offline: loaded cached patient data')
+      } else {
+        setCachedPatient(false)
+        setError(err.message || 'Failed to lookup patient')
+      }
+    } finally {
+      setLoading(false)
     }
-    
-    setLoading(false)
   }, [])
 
   // Stop scanner
@@ -154,8 +195,23 @@ export default function QRScanner() {
     await stopScanner()
     setScannedDID(null)
     setPatient(null)
+    setCachedPatient(false)
     setError(null)
     setManualDID('')
+  }
+
+  // Navigate to patient profile
+  const handleViewProfile = () => {
+    if (patient && patient.id) {
+      navigate(`/patients/${patient.id}`)
+    }
+  }
+
+  // Navigate to create vital for patient
+  const handleRecordVital = () => {
+    if (patient && patient.id) {
+      navigate('/vitals', { state: { selectedPatientId: patient.id } })
+    }
   }
 
   // Start scanning
@@ -170,7 +226,19 @@ export default function QRScanner() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Patient Check-In</h2>
-        <p className="mt-1 text-sm text-slate-500">Scan a patient's QR code or enter their DID manually.</p>
+        <p className="mt-1 text-sm text-slate-500">Scan a patient's QR code or enter their DID manually. Patient data is cached locally for offline access.</p>
+        {!isOnline && (
+          <p className="mt-2 inline-flex items-center gap-2 rounded-md bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+            <span>⚠</span>
+            Offline mode — using cached patient data
+          </p>
+        )}
+        {cachedPatient && (
+          <p className="mt-2 inline-flex items-center gap-2 rounded-md bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+            <span>💾</span>
+            Patient loaded from local cache. Live lookup unavailable.
+          </p>
+        )}
       </div>
 
       {/* Main Content */}
@@ -328,9 +396,27 @@ export default function QRScanner() {
                   </div>
                 </div>
 
-                <div className="border-t border-green-200 pt-3">
-                  <Button className="w-full" onClick={handleReset}>
-                    Check In Another Patient
+                <div className="border-t border-green-200 pt-3 space-y-2">
+                  <Button 
+                    onClick={handleViewProfile}
+                    className="w-full"
+                  >
+                    <span className="material-symbols-outlined mr-2 text-base">person</span>
+                    View Patient Profile
+                  </Button>
+                  <Button 
+                    onClick={handleRecordVital}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <span className="material-symbols-outlined mr-2 text-base">vitals</span>
+                    Record Vital Signs
+                  </Button>
+                  <Button 
+                    onClick={handleReset}
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Scan Another Patient
                   </Button>
                 </div>
               </div>

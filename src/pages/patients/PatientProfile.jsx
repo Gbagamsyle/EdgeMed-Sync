@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { useParams, Link } from 'react-router-dom'
 import { getPatientById } from '../../services/patientService'
+import { BACKEND_URL } from '../../services/config'
 import Card from '../../components/ui/Card'
 
 export default function PatientProfile() {
@@ -26,7 +28,29 @@ export default function PatientProfile() {
     w.focus()
     // wait for image to load then print
     setTimeout(() => { w.print(); w.close() }, 500)
+
+    // Send audit log for QR print
+    try {
+      const staffId = profile?.id || null
+      const staffName = profile?.full_name || profile?.name || null
+      fetch(`${BACKEND_URL}/api/audit/log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'qr_print',
+          patient_id: patient.id,
+          patient_did: patient.did,
+          staff_id: staffId,
+          staff_name: staffName,
+          details: { via: 'PatientProfile UI' }
+        })
+      }).catch(err => console.warn('Audit log failed:', err))
+    } catch (err) {
+      console.warn('Audit log exception:', err)
+    }
   }
+
+  const { profile } = useAuth()
 
   if (!patient) return <p>Loading...</p>
 

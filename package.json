@@ -11,11 +11,17 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
+    "cors": "^2.8.6",
+    "dexie": "^4.4.4",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.3",
     "qrcode": "^1.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.1"
+    "react-router-dom": "^7.13.1",
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

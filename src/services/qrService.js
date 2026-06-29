@@ -1,11 +1,11 @@
 // Call backend to register a patient and get QR code:
 // POST http://localhost:3001/api/identity/register
 // Body: { patient_id: "patient-uuid", pin: "1234" }
+import { BACKEND_URL, API_BASE } from './config'
+
 /**
  * QR Code scanning and patient lookup service
  */
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
 /**
  * Lookup patient by DID (Decentralized Identifier)
@@ -13,7 +13,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
  */
 export const lookupPatientByDID = async (did) => {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/identity/${did}`)
+    const response = await fetch(`${API_BASE}/identity/${did}`)
     
     if (!response.ok) {
       if (response.status === 404) {
@@ -91,5 +91,28 @@ export const requestCameraPermission = async () => {
     }
 
     return { error: message }
+  }
+}
+
+/**
+ * Recover identity by phone + PIN (calls backend /api/identity/recover)
+ */
+export const recoverIdentity = async (phone, pin) => {
+  try {
+    const response = await fetch(`${API_BASE}/identity/recover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, pin })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return { error: data.error || 'Failed to recover identity' }
+    }
+
+    return { data }
+  } catch (err) {
+    return { error: `Recovery failed: ${err.message}` }
   }
 }

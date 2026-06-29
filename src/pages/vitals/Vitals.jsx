@@ -4,12 +4,16 @@ import { getPatientById } from '../../services/patientService'
 import { useAuth } from '../../context/AuthContext'
 import { getPatients } from '../../services/patientService'
 import { createVital, getPatientVitals, getVitalStatus } from '../../services/vitalsService'
+import { useOfflineSync } from '../../hooks/useOfflineSync'
+import { supabase } from '../../services/supabaseClient'
+import { BACKEND_URL } from '../../services/config'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Card from '../../components/ui/Card'
 
 export default function Vitals() {
   const { user } = useAuth()
+  const { isOnline, queueRecord } = useOfflineSync()
   const location = useLocation()
   const navigate = useNavigate()
   const [patients, setPatients] = useState([])
@@ -130,30 +134,85 @@ export default function Vitals() {
     setLoading(true)
     const payload = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]))
 
-    const { error } = await createVital(selectedPatient.id, payload, user.id)
-
-    setLoading(false)
-
-    if (error) {
-      setStatus({ type: 'error', message: error.message })
-      return
+    // Try to create vital directly if online
+    if (isOnline) {
+      try {
+        const { error } = await createVital(selectedPatient.id, payload, user.id)
+        
+        if (!error) {
+          setStatus({ type: 'success', message: 'Vital signs recorded successfully!' })
+          setForm({
+            temperature_celsius: '',
+            systolic_bp: '',
+            diastolic_bp: '',
+            heart_rate: '',
+            respiratory_rate: '',
+            oxygen_saturation: '',
+            weight_kg: '',
+            height_cm: '',
+            notes: ''
+          })
+          setLoading(false)
+          setTimeout(loadVitalHistory, 500)
+          return
+        } else {
+          // If online request fails, queue for offline sync
+          throw error
+        }
+      } catch (err) {
+        console.warn('Direct vital creation failed, queuing for offline sync:', err.message)
+      }
     }
 
-    setStatus({ type: 'success', message: 'Vital signs recorded successfully!' })
-    setForm({
-      temperature_celsius: '',
-      systolic_bp: '',
-      diastolic_bp: '',
-      heart_rate: '',
-      respiratory_rate: '',
-      oxygen_saturation: '',
-      weight_kg: '',
-      height_cm: '',
-      notes: ''
-    })
+    // Offline mode or direct creation failed: queue for sync
+    try {
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
 
-    // Reload vital history
-    setTimeout(loadVitalHistory, 500)
+      const recordData = {
+        patientId: selectedPatient.id,
+        payload: {
+          patientId: selectedPatient.id,
+          vitals: payload,
+          notes: form.notes,
+          staffId: user.id,
+          createdAt: new Date().toISOString()
+        },
+        token,
+        backendUrl: BACKEND_URL,
+        endpoint: '/api/records/create'
+      }
+
+      await queueRecord(recordData)
+      
+      setStatus({ 
+        type: 'success', 
+        message: isOnline 
+          ? 'Vital signs queued for sync (network issue)' 
+          : 'You are offline - vital signs queued for sync when online'
+      })
+      
+      setForm({
+        temperature_celsius: '',
+        systolic_bp: '',
+        diastolic_bp: '',
+        heart_rate: '',
+        respiratory_rate: '',
+        oxygen_saturation: '',
+        weight_kg: '',
+        height_cm: '',
+        notes: ''
+      })
+      
+      // Reload vital history
+      setTimeout(loadVitalHistory, 500)
+    } catch (err) {
+      console.error('Failed to queue vital:', err)
+      setStatus({ type: 'error', message: 'Failed to record vital signs: ' + err.message })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getStatusBadgeColor = (status) => {

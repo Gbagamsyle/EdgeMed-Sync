@@ -23,6 +23,7 @@ function AppRoutes() {
         <Route path="/" element={<Homepage />} />
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
+        {/* Recover removed: staff should use PatientProfile Print QR (staff-only) */}
 
         <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />

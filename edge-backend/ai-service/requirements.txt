@@ -1,4 +1,8 @@
-flask==2.3.4
-scikit-learn==1.2.2
-joblib==1.3.2
-numpy==1.26.4
+flask>=2.3.0,<3.0
+scikit-learn>=1.0.0
+joblib>=1.1.0
+numpy>=1.21.0
+# Post-quantum cryptography (optional)
+# Uncomment one:
+# pyoqs>=0.8.0  # liboqs Python bindings (requires C compiler)
+# dilithium-py  # Pure Python implementation (simpler but slower)

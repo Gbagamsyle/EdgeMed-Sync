@@ -1,13 +1,17 @@
 from flask import Flask, request, jsonify
 from model import load_or_train_model, feature_names
+from signing import signing_bp
 import numpy as np
 
 app = Flask(__name__)
 model = load_or_train_model()
 
+# Register signing blueprint
+app.register_blueprint(signing_bp, url_prefix='/signing')
+
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'services': ['predict', 'signing']})
 
 @app.route('/predict', methods=['POST'])
 def predict():

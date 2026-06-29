@@ -1,6 +1,7 @@
 import express from 'express'
 import { getSupabase } from '../services/supabaseClient.js'
 import { generateDID, generatePINHash, verifyPIN } from '../services/did.js'
+import { requireStaff } from '../middleware/auth.js'
 import { generateKeyPair } from '../services/signing.js'
 import { generateQRCodeDataURL } from '../services/qrCode.js'
 
@@ -38,8 +39,8 @@ router.post('/register', async (req, res) => {
     const did = generateDID(patient)
     console.log(`[IDENTITY] Generated DID for patient ${patient_id}:`, did)
 
-    // Step 2: Generate keypair
-    const keypair = generateKeyPair()
+    // Step 2: Generate keypair using the Dilithium signing service
+    const keypair = await generateKeyPair(patient_id, 'patient')
 
     // Step 3: Hash PIN
     const { hash: pinHash, salt: pinSalt } = generatePINHash(pin)
@@ -91,7 +92,7 @@ router.post('/register', async (req, res) => {
  * POST /api/identity/recover
  * Recover DID via phone + PIN when QR is lost
  */
-router.post('/recover', async (req, res) => {
+router.post('/recover', requireStaff, async (req, res) => {
   try {
     const supabase = getSupabase()
     if (!supabase) {

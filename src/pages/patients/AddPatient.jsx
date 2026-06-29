@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPatient } from '../../services/patientService'
+import { BACKEND_URL } from '../../services/config'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
@@ -20,8 +21,6 @@ export default function AddPatient() {
   const [status, setStatus] = useState({ type: '', message: '' })
   const [qrCode, setQrCode] = useState(null)
   const [did, setDid] = useState(null)
-
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
