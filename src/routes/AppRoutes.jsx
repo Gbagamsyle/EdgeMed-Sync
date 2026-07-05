@@ -11,6 +11,8 @@ import PatientProfile from '../pages/patients/PatientProfile'
 import EditPatient from '../pages/patients/EditPatient'
 import PatientRecords from '../pages/patients/PatientRecords'
 import Diagnosis from '../pages/diagnosis/Diagnosis'
+import DiagnosisReview from '../pages/diagnosis/DiagnosisReview'
+import DiagnosisPrediction from '../pages/diagnosis/DiagnosisPrediction'
 import ScanQR from '../pages/qr/ScanQR'
 import Vitals from '../pages/vitals/Vitals'
 import Reports from '../pages/reports/Reports'
@@ -33,6 +35,8 @@ function AppRoutes() {
           <Route path="patients/:id/edit" element={<EditPatient />} />
           <Route path="patients/:id/records" element={<PatientRecords />} />
           <Route path="diagnosis" element={<Diagnosis />} />
+          <Route path="diagnosis/:patientId" element={<DiagnosisReview />} />
+          <Route path="diagnosis/:patientId/predict" element={<DiagnosisPrediction />} />
           <Route path="vitals" element={<Vitals />} />
           <Route path="qr/scan" element={<ScanQR />} />
           <Route path="reports" element={<Reports />} />

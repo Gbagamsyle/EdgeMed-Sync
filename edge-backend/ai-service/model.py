@@ -1,38 +1,58 @@
-# Lightweight rule-based model to avoid heavy ML dependencies
+import os
 import numpy as np
+import joblib
+from sklearn.ensemble import RandomForestClassifier
+
 # Define expected vitals features
-feature_names = ['heart_rate','systolic_bp','diastolic_bp','spo2','temperature','resp_rate']
+feature_names = ['heart_rate', 'systolic_bp', 'diastolic_bp', 'spo2', 'temperature', 'resp_rate']
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'disease_model.joblib')
 
 
-class RuleModel:
-    def __init__(self):
-        # human-readable labels
-        self.classes_ = np.array(['diseaseA', 'diseaseB', 'diseaseC'])
+def _generate_synthetic_training_data():
+    rng = np.random.default_rng(42)
+    features = []
+    labels = []
 
-    def predict_proba(self, X):
-        # X: array-like shape (n_samples, n_features)
-        probs = []
-        for row in X:
-            hr, sbp, dbp, spo2, temp, rr = [float(v) for v in row]
-            scores = np.array([0.0, 0.0, 0.0])
-            # diseaseA: tachy + fever
-            scores[0] += (hr > 100) * 1.5
-            scores[0] += (temp > 38.0) * 1.5
-            # diseaseB: hypertensive pattern
-            scores[1] += (sbp > 140) * 1.2
-            scores[1] += (dbp > 90) * 1.0
-            # diseaseC: respiratory compromise
-            scores[2] += (spo2 < 94) * 1.5
-            scores[2] += (rr > 20) * 1.2
+    for _ in range(220):
+        heart_rate = float(rng.uniform(60, 130))
+        systolic_bp = float(rng.uniform(90, 180))
+        diastolic_bp = float(rng.uniform(60, 110))
+        spo2 = float(rng.uniform(88, 99))
+        temperature = float(rng.uniform(35.5, 40.5))
+        resp_rate = float(rng.uniform(12, 30))
 
-            if scores.sum() == 0:
-                probs.append(np.array([0.33, 0.33, 0.34]))
-            else:
-                probs.append(scores / scores.sum())
+        score_a = int(heart_rate > 100) + int(temperature > 38.0)
+        score_b = int(systolic_bp > 140) + int(diastolic_bp > 90)
+        score_c = int(spo2 < 94) + int(resp_rate > 20)
 
-        return np.vstack(probs)
+        if score_a >= max(score_b, score_c) and score_a > 0:
+            label = 'diseaseA'
+        elif score_b >= max(score_a, score_c) and score_b > 0:
+            label = 'diseaseB'
+        else:
+            label = 'diseaseC'
+
+        features.append([heart_rate, systolic_bp, diastolic_bp, spo2, temperature, resp_rate])
+        labels.append(label)
+
+    return np.array(features, dtype=float), np.array(labels)
+
+
+def train_model():
+    X, y = _generate_synthetic_training_data()
+    model = RandomForestClassifier(
+        n_estimators=120,
+        max_depth=4,
+        random_state=42,
+        class_weight='balanced',
+    )
+    model.fit(X, y)
+    joblib.dump(model, MODEL_PATH)
+    return model
 
 
 def load_or_train_model():
-    # return a simple rule-based model instance
-    return RuleModel()
+    if os.path.exists(MODEL_PATH):
+        return joblib.load(MODEL_PATH)
+
+    return train_model()
