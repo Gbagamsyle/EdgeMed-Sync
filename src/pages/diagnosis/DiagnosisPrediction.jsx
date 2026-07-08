@@ -124,6 +124,8 @@ export default function DiagnosisPrediction() {
               <p className="text-sm text-slate-500">Suggested condition</p>
               <p className="text-2xl font-bold text-slate-900">{analysis.label || 'No prediction'}</p>
               <p className="text-sm text-slate-600">Confidence: {typeof analysis.confidence === 'number' ? `${Math.round(analysis.confidence * 100)}%` : 'N/A'}</p>
+              {analysis.severity ? <p className="text-sm font-medium text-slate-700">Severity: {analysis.severity}</p> : null}
+              {analysis.description ? <p className="text-sm text-slate-600">{analysis.description}</p> : null}
             </div>
           </Card>
         ) : null}

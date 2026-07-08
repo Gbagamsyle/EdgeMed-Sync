@@ -204,13 +204,16 @@ export default function DiagnosisReview() {
                   <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">
                     <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Prediction result</p>
                     <p className="mt-2 text-xl font-semibold text-slate-900">
-                      {predictionResult.label || predictionResult.prediction || predictionResult.result || 'No prediction'}
+                      {predictionResult.label || 'No prediction'}
                     </p>
                     <p className="mt-2 text-sm text-slate-600">
                       Confidence: {typeof predictionResult.confidence === 'number' ? `${Math.round(predictionResult.confidence * 100)}%` : 'N/A'}
                     </p>
-                    {predictionResult.reasoning ? (
-                      <p className="mt-3 text-sm leading-6 text-slate-600">{predictionResult.reasoning}</p>
+                    {predictionResult.severity ? (
+                      <p className="mt-2 text-sm font-medium text-slate-700">Severity: {predictionResult.severity}</p>
+                    ) : null}
+                    {predictionResult.description ? (
+                      <p className="mt-3 text-sm leading-6 text-slate-600">{predictionResult.description}</p>
                     ) : null}
                   </div>
                 ) : null}

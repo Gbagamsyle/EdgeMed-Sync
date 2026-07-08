@@ -2,6 +2,7 @@ flask>=2.3.0,<3.0
 scikit-learn>=1.0.0
 joblib>=1.1.0
 numpy>=1.21.0
+pandas>=2.0.0
 # Post-quantum cryptography (optional)
 # Uncomment one:
 # pyoqs>=0.8.0  # liboqs Python bindings (requires C compiler)

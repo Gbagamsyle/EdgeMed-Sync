@@ -1,5 +1,27 @@
 import { API_BASE } from './config'
 
+const normalizePrediction = (payload) => {
+  const label =
+    payload?.label ||
+    payload?.disease ||
+    payload?.prediction ||
+    payload?.result ||
+    payload?.diagnosis ||
+    payload?.class_name ||
+    'No prediction'
+
+  return {
+    ...payload,
+    label,
+    confidence:
+      typeof payload?.confidence === 'number'
+        ? payload.confidence
+        : typeof payload?.confidence_score === 'number'
+          ? payload.confidence_score
+          : null,
+  }
+}
+
 export const diagnosisService = {
   analyze: async (vitals) => {
     const response = await fetch(`${API_BASE}/ai/predict`, {
@@ -16,7 +38,7 @@ export const diagnosisService = {
       throw new Error(payload.error || 'Unable to analyze vitals')
     }
 
-    return payload
+    return normalizePrediction(payload)
   },
 
   checkStatus: async () => {
