@@ -1,4 +1,5 @@
-import { API_BASE } from './config'
+import { API_BASE } from './config.js'
+import { supabase } from './supabaseClient.js'
 
 const normalizePrediction = (payload) => {
   const label =
@@ -53,10 +54,14 @@ export const diagnosisService = {
   },
 
   saveDiagnosis: async ({ patient_did, doctor_id, vitals, diagnosis_notes, recorded_by }) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+
     const response = await fetch(`${API_BASE}/records`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
         patient_did,

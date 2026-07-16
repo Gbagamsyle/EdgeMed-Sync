@@ -1,17 +1,61 @@
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { getPatients } from '../../services/patientService'
+
+const formatCount = (value) => new Intl.NumberFormat().format(value)
 
 export default function Dashboard() {
   const { profile } = useAuth()
+  const [patients, setPatients] = useState([])
+  const [loadingStats, setLoadingStats] = useState(true)
 
   const firstName = profile?.full_name ? profile.full_name.split(' ')[0] : 'Doctor'
 
-  const stats = [
-    { label: 'Active Patients', value: '5,428', icon: 'group' },
-    { label: 'Daily Scans', value: '12,304', icon: 'qr_code_scanner' },
-    { label: 'AI Alerts', value: '372', icon: 'bolt' },
-    { label: 'Staff Online', value: '188', icon: 'medical_services' },
-  ]
+  useEffect(() => {
+    let isMounted = true
 
+    const loadMetrics = async () => {
+      setLoadingStats(true)
+      const { data, error } = await getPatients()
+
+      if (!isMounted) return
+
+      if (!error) {
+        setPatients(data || [])
+      } else {
+        console.error('Failed to load dashboard metrics:', error)
+        setPatients([])
+      }
+
+      setLoadingStats(false)
+    }
+
+    loadMetrics()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const totalPatients = patients.length
+  const qrReadyPatients = patients.filter((patient) => patient?.qr_code).length
+  const recentRegistrations = patients.filter((patient) => {
+    if (!patient?.created_at) return false
+
+    const createdAt = new Date(patient.created_at)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 7)
+
+    return createdAt >= cutoff
+  }).length
+  const signedInStaff = profile ? 1 : 0
+
+  const stats = [
+    { label: 'Active Patients', value: loadingStats ? '—' : formatCount(totalPatients), icon: 'group' },
+    { label: 'QR-ready Patients', value: loadingStats ? '—' : formatCount(qrReadyPatients), icon: 'qr_code_scanner' },
+    { label: 'New This Week', value: loadingStats ? '—' : formatCount(recentRegistrations), icon: 'bolt' },
+    { label: 'Signed-in Staff', value: loadingStats ? '—' : formatCount(signedInStaff), icon: 'medical_services' },
+  ]
 
   return (
     <main className="min-h-screen bg-slate-100 p-6">
@@ -59,7 +103,7 @@ export default function Dashboard() {
                 </span>
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-slate-600">New registrations</p>
-                  <p className="text-lg font-bold text-slate-900">8</p>
+                  <p className="text-lg font-bold text-slate-900">{loadingStats ? '—' : formatCount(recentRegistrations)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-xs">
@@ -67,8 +111,8 @@ export default function Dashboard() {
                   <span className="material-symbols-outlined text-sm text-blue-600">qr_code_scanner</span>
                 </span>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-slate-600">Pending scans</p>
-                  <p className="text-lg font-bold text-slate-900">14</p>
+                  <p className="text-xs font-semibold text-slate-600">QR-ready patients</p>
+                  <p className="text-lg font-bold text-slate-900">{loadingStats ? '—' : formatCount(qrReadyPatients)}</p>
                 </div>
               </div>
             </div>
@@ -193,7 +237,7 @@ export default function Dashboard() {
           <p className="mt-2 text-sm text-slate-600">Create and manage patient diagnoses.</p>
         </a>
 
-        <a href="/dashboard/qr-scan" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
+        <a href="/dashboard/qr/scan" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 mb-4">
             <span className="material-symbols-outlined text-xl text-indigo-600">qr_code_2</span>
           </div>
