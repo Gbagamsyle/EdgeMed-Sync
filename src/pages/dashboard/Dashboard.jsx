@@ -1,40 +1,86 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getPatients } from '../../services/patientService'
+import { BACKEND_URL } from '../../services/config'
+import { diagnosisService } from '../../services/diagnosisService'
+import { supabase } from '../../services/supabaseClient'
 
 const formatCount = (value) => new Intl.NumberFormat().format(value)
+const formatPercent = (value) => `${Math.round(value)}%`
+const parseAuditDetails = (details) => {
+  if (!details) return null
+  if (typeof details !== 'string') return String(details)
+
+  try {
+    const parsed = JSON.parse(details)
+    if (typeof parsed === 'string') return parsed
+    if (parsed?.message) return parsed.message
+    if (Object.keys(parsed).length) return Object.values(parsed).join(' · ')
+  } catch {
+    return details
+  }
+
+  return details
+}
 
 export default function Dashboard() {
   const { profile } = useAuth()
   const [patients, setPatients] = useState([])
+  const [auditActivity, setAuditActivity] = useState([])
   const [loadingStats, setLoadingStats] = useState(true)
+  const [loadingHealth, setLoadingHealth] = useState(true)
+  const [aiHealth, setAiHealth] = useState({ status: 'unknown', error: null })
 
   const firstName = profile?.full_name ? profile.full_name.split(' ')[0] : 'Doctor'
 
-  useEffect(() => {
-    let isMounted = true
+  const loadMetrics = async () => {
+    setLoadingStats(true)
+    setLoadingHealth(true)
 
-    const loadMetrics = async () => {
-      setLoadingStats(true)
-      const { data, error } = await getPatients()
+    const patientResult = await getPatients()
+    if (!patientResult.error) {
+      setPatients(patientResult.data || [])
+    } else {
+      console.error('Failed to load dashboard metrics:', patientResult.error)
+      setPatients([])
+    }
 
-      if (!isMounted) return
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      const auditResp = await fetch(`${BACKEND_URL}/api/audit/logs?limit=4`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
 
-      if (!error) {
-        setPatients(data || [])
+      if (auditResp.ok) {
+        const payload = await auditResp.json()
+        setAuditActivity(payload.logs || [])
       } else {
-        console.error('Failed to load dashboard metrics:', error)
-        setPatients([])
+        console.error('Failed to load recent activity:', await auditResp.text())
+        setAuditActivity([])
       }
-
-      setLoadingStats(false)
+    } catch (err) {
+      console.error('Failed to load recent activity:', err)
+      setAuditActivity([])
     }
 
-    loadMetrics()
-
-    return () => {
-      isMounted = false
+    try {
+      const health = await diagnosisService.checkStatus()
+      setAiHealth({ status: health.status || 'offline', error: health.error || null })
+    } catch (err) {
+      setAiHealth({ status: 'offline', error: err.message })
     }
+
+    setLoadingStats(false)
+    setLoadingHealth(false)
+  }
+
+  useEffect(() => {
+    const init = async () => {
+      await loadMetrics()
+    }
+
+    void init()
   }, [])
 
   const totalPatients = patients.length
@@ -48,7 +94,15 @@ export default function Dashboard() {
 
     return createdAt >= cutoff
   }).length
+  const recordsToday = patients.filter((patient) => {
+    if (!patient?.created_at) return false
+    const createdAt = new Date(patient.created_at)
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    return createdAt >= todayStart
+  }).length
   const signedInStaff = profile ? 1 : 0
+  const qrCoverage = totalPatients ? (qrReadyPatients / totalPatients) * 100 : 0
 
   const stats = [
     { label: 'Active Patients', value: loadingStats ? '—' : formatCount(totalPatients), icon: 'group' },
@@ -56,6 +110,15 @@ export default function Dashboard() {
     { label: 'New This Week', value: loadingStats ? '—' : formatCount(recentRegistrations), icon: 'bolt' },
     { label: 'Signed-in Staff', value: loadingStats ? '—' : formatCount(signedInStaff), icon: 'medical_services' },
   ]
+
+  const healthMetrics = [
+    { label: 'AI service', value: aiHealth.status === 'online' ? 'Online' : 'Offline', description: aiHealth.status === 'online' ? 'AI inference reachable' : aiHealth.error || 'Service unavailable' },
+    { label: 'Records added today', value: loadingStats ? '—' : formatCount(recordsToday), description: 'New patient records since midnight' },
+    { label: 'QR coverage', value: loadingStats ? '—' : formatPercent(qrCoverage), description: 'Patients with active QR codes' },
+    { label: 'Recent audit events', value: loadingHealth ? '—' : formatCount(auditActivity.length), description: 'Latest system actions' },
+  ]
+
+  const activityItems = auditActivity
 
   return (
     <main className="min-h-screen bg-slate-100 p-6">
@@ -74,7 +137,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 pt-2">
-              <button aria-label="Refresh dashboard" className="group flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50">
+              <button type="button" onClick={loadMetrics} aria-label="Refresh dashboard" className="group flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50">
                 <span className="material-symbols-outlined text-base transition group-hover:rotate-180">refresh</span>
                 <span>Refresh</span>
               </button>
@@ -141,9 +204,6 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="mb-1 text-3xl font-bold tracking-tight text-slate-900">{item.value}</div>
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-emerald-600">↑ 8.4%</span> from last week
-                </p>
               </div>
             </article>
           )
@@ -162,30 +222,30 @@ export default function Dashboard() {
             </span>
           </div>
           <ul className="mt-6 space-y-3">
-            <li className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-emerald-100">
-                <span className="material-symbols-outlined text-emerald-600 text-base">check</span>
-              </span>
-              <span>New patient record created - ID #8569</span>
-            </li>
-            <li className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-amber-100">
-                <span className="material-symbols-outlined text-amber-600 text-base">warning</span>
-              </span>
-              <span>AI alert triage raised for patient #332</span>
-            </li>
-            <li className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-cyan-100">
-                <span className="material-symbols-outlined text-cyan-600 text-base">medical_services</span>
-              </span>
-              <span>Dr. Tan requested MRI follow-up</span>
-            </li>
-            <li className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-violet-100">
-                <span className="material-symbols-outlined text-violet-600 text-base">event</span>
-              </span>
-              <span>Appointment scheduled (27 total today)</span>
-            </li>
+            {activityItems.length > 0 ? (
+              activityItems.map((entry) => {
+                const label = parseAuditDetails(entry.details) || entry.event_type.replace(/_/g, ' ')
+                const actor = entry.staff_name || entry.staff_id || 'System'
+                const timestamp = entry.created_at ? new Date(entry.created_at).toLocaleString() : null
+
+                return (
+                  <li key={entry.id || `${entry.event_type}-${entry.created_at}`} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-slate-100 text-slate-600">
+                        <span className="material-symbols-outlined text-base">task_alt</span>
+                      </span>
+                      <span className="font-medium text-slate-900">{label}</span>
+                    </div>
+                    <div className="flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+                      <span>{actor}</span>
+                      {timestamp ? <span>{timestamp}</span> : null}
+                    </div>
+                  </li>
+                )
+              })
+            ) : (
+              <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">No recent activity is available yet.</li>
+            )}
           </ul>
         </div>
 
@@ -193,29 +253,22 @@ export default function Dashboard() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-slate-900">System health</h2>
-              <p className="mt-1 text-sm text-slate-500">Platform metrics</p>
+              <p className="mt-1 text-sm text-slate-500">Platform metrics based on live data</p>
             </div>
             <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
               <span className="material-symbols-outlined text-slate-600">dashboard</span>
             </span>
           </div>
           <div className="mt-6 space-y-3">
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm text-slate-700">Server uptime</p>
-              <p className="font-bold text-slate-900">99.96%</p>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm text-slate-700">API response</p>
-              <p className="font-bold text-slate-900">215 ms</p>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm text-slate-700">DB connections</p>
-              <p className="font-bold text-slate-900">452</p>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm text-slate-700">Pending tasks</p>
-              <p className="font-bold text-slate-900">18</p>
-            </div>
+            {healthMetrics.map((metric) => (
+              <div key={metric.label} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div>
+                  <p className="text-sm text-slate-700">{metric.label}</p>
+                  <p className="text-xs text-slate-500">{metric.description}</p>
+                </div>
+                <p className="font-bold text-slate-900">{metric.value}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -23,7 +23,8 @@ export const requireStaff = async (req, res, next) => {
       const secret = process.env.JWT_SECRET
       if (secret) {
         const payload = jwt.verify(token, secret)
-        if (payload.role === 'staff' || payload.is_staff === true) {
+        const staffRoles = ['staff', 'admin', 'doctor', 'nurse', 'receptionist']
+        if (staffRoles.includes(payload.role) || payload.is_staff === true) {
           req.user = payload
           return next()
         }
@@ -66,7 +67,8 @@ export const requireStaff = async (req, res, next) => {
       return res.status(403).json({ error: 'User profile not found or access denied' })
     }
 
-    if (profile.role === 'staff' || profile.is_staff === true) {
+    const staffRoles = ['staff', 'admin', 'doctor', 'nurse', 'receptionist']
+    if (staffRoles.includes(profile.role) || profile.is_staff === true) {
       req.user = { id: user.id, profile }
       return next()
     }

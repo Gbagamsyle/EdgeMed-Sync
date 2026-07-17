@@ -1,30 +1,54 @@
 """
 Dilithium Signing Service
-Provides post-quantum cryptographic signing for EdgeMed records
-
-Requires: pip install dilithium-py
-or: pip install pyoqs
+Provides post-quantum cryptographic signing for EdgeMed records.
 """
 
-from flask import Blueprint, request, jsonify
+import hashlib
 import json
 from datetime import datetime
 
-# Try dilithium-py first, fall back to placeholder
+from flask import Blueprint, jsonify, request
+
 try:
-    from dilithium import Dilithium
+    from dilithium_py.dilithium import Dilithium3
+
     DILITHIUM_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - depends on environment
+    Dilithium3 = None
     DILITHIUM_AVAILABLE = False
-    print("⚠️  dilithium-py not installed. Using placeholder signatures.")
+    print("⚠️  Dilithium backend unavailable. Falling back to SHA-256 hashing.")
 
 signing_bp = Blueprint('signing', __name__)
 
 # In-memory keypair store (in production, store in Supabase)
 KEYPAIRS = {}
 
+
+def generate_keypair() -> tuple[bytes, bytes]:
+    if not DILITHIUM_AVAILABLE:
+        raise RuntimeError('Dilithium backend unavailable')
+
+    backend = Dilithium3
+    public_key, private_key = backend.keygen()
+    return public_key, private_key
+
+
+def sign_bytes(payload: bytes, private_key: bytes) -> bytes:
+    if not DILITHIUM_AVAILABLE:
+        return hashlib.sha256(payload).digest()
+
+    return Dilithium3.sign(private_key, payload)
+
+
+def verify_signature_bytes(payload: bytes, signature: bytes, public_key: bytes) -> bool:
+    if not DILITHIUM_AVAILABLE:
+        return hashlib.sha256(payload).digest() == signature
+
+    return bool(Dilithium3.verify(public_key, payload, signature))
+
+
 @signing_bp.route('/generate-keypair', methods=['POST'])
-def generate_keypair():
+def generate_keypair_route():
     """
     POST /signing/generate-keypair
     Generate a new Dilithium keypair for a patient/staff member
@@ -45,44 +69,30 @@ def generate_keypair():
     }
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         subject_id = data.get('subject_id')
         subject_type = data.get('subject_type', 'patient')
 
         if not subject_id:
             return jsonify({'error': 'subject_id required'}), 400
 
-        if not DILITHIUM_AVAILABLE:
-            # Placeholder: generate fake keys
-            return jsonify({
-                'subject_id': subject_id,
-                'subject_type': subject_type,
-                'public_key': f'placeholder_pk_{subject_id}',
-                'private_key': f'placeholder_sk_{subject_id}',
-                'algorithm': 'Dilithium3-Placeholder',
-                'created_at': datetime.utcnow().isoformat() + 'Z',
-                'warning': 'Using placeholder keys - Dilithium not installed'
-            }), 200
+        public_key, private_key = generate_keypair()
 
-        # Generate real Dilithium keypair
-        d = Dilithium()
-        pk, sk = d.generate_keys()
-
-        # Store for later signing
         KEYPAIRS[subject_id] = {
-            'pk': pk,
-            'sk': sk,
+            'pk': public_key,
+            'sk': private_key,
             'subject_type': subject_type,
-            'created_at': datetime.utcnow().isoformat()
+            'created_at': datetime.utcnow().isoformat(),
         }
 
         return jsonify({
             'subject_id': subject_id,
             'subject_type': subject_type,
-            'public_key': pk.hex(),
-            'algorithm': 'Dilithium3',
+            'public_key': public_key.hex(),
+            'private_key': private_key.hex(),
+            'algorithm': 'Dilithium3' if DILITHIUM_AVAILABLE else 'SHA256-Fallback',
             'created_at': datetime.utcnow().isoformat() + 'Z',
-            'message': 'Keypair generated successfully'
+            'message': 'Keypair generated successfully',
         }), 200
 
     except Exception as e:
@@ -111,45 +121,28 @@ def sign_payload():
     }
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         subject_id = data.get('subject_id')
         payload = data.get('payload')
-        
-        if not subject_id or not payload:
+
+        if not subject_id or payload is None:
             return jsonify({'error': 'subject_id and payload required'}), 400
 
-        # Convert payload to bytes for signing
         payload_bytes = json.dumps(payload, separators=(',', ':')).encode('utf-8')
 
-        if not DILITHIUM_AVAILABLE:
-            # Placeholder signature
-            return jsonify({
-                'signature': f'placeholder_sig_{subject_id}_{len(payload_bytes)}',
-                'subject_id': subject_id,
-                'algorithm': 'Dilithium3-Placeholder',
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
-                'warning': 'Using placeholder signature - Dilithium not installed'
-            }), 200
-
-        # Get keypair from storage or re-generate if not found
         if subject_id not in KEYPAIRS:
-            d = Dilithium()
-            pk, sk = d.generate_keys()
-            KEYPAIRS[subject_id] = {'pk': pk, 'sk': sk}
-        
-        keypair = KEYPAIRS[subject_id]
-        sk = keypair['sk']
+            public_key, private_key = generate_keypair()
+            KEYPAIRS[subject_id] = {'pk': public_key, 'sk': private_key}
 
-        # Sign the payload
-        d = Dilithium()
-        signature = d.sign(payload_bytes, sk)
+        keypair = KEYPAIRS[subject_id]
+        signature = sign_bytes(payload_bytes, keypair['sk'])
 
         return jsonify({
             'signature': signature.hex(),
             'subject_id': subject_id,
-            'algorithm': 'Dilithium3',
+            'algorithm': 'Dilithium3' if DILITHIUM_AVAILABLE else 'SHA256-Fallback',
             'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'message': 'Signature generated successfully'
+            'message': 'Signature generated successfully',
         }), 200
 
     except Exception as e:
@@ -157,7 +150,7 @@ def sign_payload():
 
 
 @signing_bp.route('/verify', methods=['POST'])
-def verify_signature():
+def verify_signature_route():
     """
     POST /signing/verify
     Verify a Dilithium signature
@@ -179,46 +172,33 @@ def verify_signature():
     }
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         subject_id = data.get('subject_id')
         payload = data.get('payload')
         signature = data.get('signature')
         public_key = data.get('public_key')
 
-        if not all([subject_id, payload, signature, public_key]):
+        if not all([subject_id, payload is not None, signature, public_key]):
             return jsonify({'error': 'subject_id, payload, signature, and public_key required'}), 400
 
-        if not DILITHIUM_AVAILABLE:
-            # Placeholder verification (always succeeds)
-            return jsonify({
-                'valid': True,
-                'subject_id': subject_id,
-                'algorithm': 'Dilithium3-Placeholder',
-                'message': 'Placeholder verification - Dilithium not installed',
-                'warning': 'Using placeholder verification'
-            }), 200
-
-        # Convert back to bytes
         payload_bytes = json.dumps(payload, separators=(',', ':')).encode('utf-8')
         signature_bytes = bytes.fromhex(signature)
-        pk_bytes = bytes.fromhex(public_key)
+        public_key_bytes = bytes.fromhex(public_key)
 
-        # Verify signature
-        d = Dilithium()
-        is_valid = d.verify(payload_bytes, signature_bytes, pk_bytes)
+        is_valid = verify_signature_bytes(payload_bytes, signature_bytes, public_key_bytes)
 
         return jsonify({
             'valid': is_valid,
             'subject_id': subject_id,
-            'algorithm': 'Dilithium3',
-            'message': 'Signature verified' if is_valid else 'Signature verification failed'
+            'algorithm': 'Dilithium3' if DILITHIUM_AVAILABLE else 'SHA256-Fallback',
+            'message': 'Signature verified' if is_valid else 'Signature verification failed',
         }), 200
 
     except Exception as e:
         return jsonify({
             'valid': False,
             'error': str(e),
-            'subject_id': subject_id
+            'subject_id': subject_id,
         }), 500
 
 

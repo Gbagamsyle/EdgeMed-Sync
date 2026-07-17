@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from model import feature_names, load_or_train_model, _should_retrain
+from model import feature_names, load_or_train_model, _should_retrain, predict
 
 
 class RandomForestModelTests(unittest.TestCase):
@@ -36,6 +36,15 @@ class RandomForestModelTests(unittest.TestCase):
             os.utime(encoder_path, (old_time, old_time))
 
             self.assertTrue(_should_retrain(model_path, encoder_path, dataset_path))
+
+    def test_predict_returns_fallback_for_invalid_input(self):
+        result = predict({'heart_rate': 'not-a-number', 'systolic_bp': 120, 'diastolic_bp': 80, 'spo2': 97, 'temperature': 37.0, 'resp_rate': 16})
+
+        self.assertIn('label', result)
+        self.assertIn('confidence', result)
+        self.assertIn('probabilities', result)
+        self.assertIn('severity', result)
+        self.assertIn('guidance', result)
 
 
 if __name__ == '__main__':

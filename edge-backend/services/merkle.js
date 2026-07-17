@@ -1,11 +1,35 @@
+import { Buffer } from 'buffer'
 import { MerkleTree } from 'merkletreejs'
 import crypto from 'crypto'
+
+const fogBatches = globalThis.__edgeMedFogBatches || (globalThis.__edgeMedFogBatches = new Map())
 
 /**
  * SHA-256 hash function for Merkle tree
  */
 const sha256 = (data) => {
   return crypto.createHash('sha256').update(data).digest()
+}
+
+const normalizeHash = (value) => {
+  if (Buffer.isBuffer(value)) {
+    return value
+  }
+
+  if (typeof value !== 'string') {
+    return Buffer.from(String(value))
+  }
+
+  let normalized = value
+  if (normalized.startsWith('0x')) {
+    normalized = normalized.slice(2)
+  }
+
+  if (/^[0-9a-fA-F]+$/.test(normalized) && normalized.length % 2 === 0) {
+    return Buffer.from(normalized, 'hex')
+  }
+
+  return Buffer.from(normalized)
 }
 
 /**
@@ -18,17 +42,13 @@ export const createMerkleTree = (leafHashes) => {
     throw new Error('Cannot create Merkle tree with empty hashes')
   }
 
-  // Convert hex strings to buffers
-  const leaves = leafHashes.map(hash => 
-    Buffer.isBuffer(hash) ? hash : Buffer.from(hash, 'hex')
-  )
-
+  const leaves = leafHashes.map(normalizeHash)
   const tree = new MerkleTree(leaves, sha256, { sortPairs: true })
-  
+
   return {
     root: tree.getRoot().toString('hex'),
     leaves: leafHashes,
-    tree: tree // Keep reference for proof generation
+    tree
   }
 }
 
@@ -39,12 +59,12 @@ export const createMerkleTree = (leafHashes) => {
  * @returns {string[]} Merkle proof hashes
  */
 export const getMerkleProof = (merkleData, leafHash) => {
-  const leaf = Buffer.isBuffer(leafHash) 
-    ? leafHash 
-    : Buffer.from(leafHash, 'hex')
-  
+  const leaf = normalizeHash(leafHash)
   const proof = merkleData.tree.getProof(leaf)
-  return proof.map(p => p.data.toString('hex'))
+  return proof.map((p) => ({
+    data: p.data.toString('hex'),
+    position: p.position
+  }))
 }
 
 /**
@@ -55,20 +75,70 @@ export const getMerkleProof = (merkleData, leafHash) => {
  * @returns {boolean}
  */
 export const verifyMerkleProof = (recordHash, proof, root) => {
-  const leaf = Buffer.isBuffer(recordHash)
-    ? recordHash
-    : Buffer.from(recordHash, 'hex')
-  
-  const proofBuffers = proof.map(p => ({
-    data: Buffer.from(p, 'hex')
-  }))
-  
-  const verified = MerkleTree.verify(
-    proofBuffers,
-    leaf,
-    sha256,
-    Buffer.from(root, 'hex')
-  )
-  
-  return verified
+  const leaf = normalizeHash(recordHash)
+  const proofEntries = (proof || []).map((p) => {
+    if (typeof p === 'string') {
+      return normalizeHash(p)
+    }
+
+    return normalizeHash(p?.data ?? p)
+  })
+
+  let current = leaf
+  for (const sibling of proofEntries) {
+    const buffers = Buffer.compare(current, sibling) === -1
+      ? [current, sibling]
+      : [sibling, current]
+
+    current = sha256(Buffer.concat(buffers))
+  }
+
+  return current.equals(Buffer.from(root, 'hex'))
+}
+
+/**
+ * Create a fog-backed Merkle batch for later verification.
+ * The batch is kept in-memory for the current process, which is enough for
+ * the local/offline integrity flow while still providing a concrete hook for
+ * a future external Fog service.
+ */
+export const createFogBatch = (leafHashes, metadata = {}) => {
+  const merkleData = createMerkleTree(leafHashes)
+  const batchId = crypto.randomUUID()
+
+  const batch = {
+    batchId,
+    leafHashes: [...leafHashes],
+    merkleRoot: merkleData.root,
+    merkleData,
+    metadata,
+    createdAt: new Date().toISOString()
+  }
+
+  fogBatches.set(batchId, batch)
+  return batch
+}
+
+/**
+ * Retrieve a fog-backed batch by ID.
+ */
+export const getFogBatch = (batchId) => {
+  return fogBatches.get(batchId) || null
+}
+
+/**
+ * Verify a leaf against a fog-backed batch.
+ */
+export const verifyAgainstFogBatch = (batchId, leafHash, proof = null) => {
+  const batch = getFogBatch(batchId)
+  if (!batch) {
+    return false
+  }
+
+  if (!batch.leafHashes.includes(leafHash)) {
+    return false
+  }
+
+  const proofToVerify = proof || getMerkleProof(batch.merkleData, leafHash)
+  return verifyMerkleProof(leafHash, proofToVerify, batch.merkleRoot)
 }

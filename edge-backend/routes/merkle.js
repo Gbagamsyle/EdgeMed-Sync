@@ -1,14 +1,20 @@
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
-import { createMerkleTree, getMerkleProof, verifyMerkleProof } from '../services/merkle.js'
+import {
+  createMerkleTree,
+  getMerkleProof,
+  verifyMerkleProof,
+  createFogBatch,
+  getFogBatch,
+  verifyAgainstFogBatch
+} from '../services/merkle.js'
 import { getSupabase } from '../services/supabaseClient.js'
 
 const router = express.Router()
 
 /**
  * POST /api/merkle/batch
- * Build a Merkle tree from queued record hashes
- * TODO: Hook to Fog layer when available
+ * Build a Merkle tree from queued record hashes and register it in the local Fog layer
  */
 router.post('/batch', async (req, res) => {
   try {
@@ -23,9 +29,14 @@ router.post('/batch', async (req, res) => {
       return res.status(400).json({ error: 'recordHashes array required' })
     }
 
-    // Create Merkle tree
+    // Create Merkle tree and register the batch in the local Fog layer
     const merkleData = createMerkleTree(recordHashes)
     const batchId = uuidv4()
+    const fogBatch = createFogBatch(recordHashes, {
+      source: 'merkle-api',
+      recordCount: recordHashes.length,
+      batchId
+    })
 
     // Store batch metadata
     const { error: insertError } = await supabase
@@ -50,7 +61,8 @@ router.post('/batch', async (req, res) => {
       batch_id: batchId,
       merkle_root: merkleData.root,
       leaf_count: recordHashes.length,
-      message: 'Merkle batch created'
+      fog_batch_id: fogBatch.batchId,
+      message: 'Merkle batch created and registered in the local Fog layer'
     })
   } catch (err) {
     console.error('[MERKLE] Batch error:', err)
@@ -109,17 +121,33 @@ router.post('/proof', async (req, res) => {
  */
 router.post('/verify', async (req, res) => {
   try {
-    const { leafHash, proof, merkleRoot } = req.body
+    const { leafHash, proof, merkleRoot, batchId } = req.body
 
     if (!leafHash || !proof || !merkleRoot) {
       return res.status(400).json({ error: 'leafHash, proof, and merkleRoot required' })
     }
 
     const isValid = verifyMerkleProof(leafHash, proof, merkleRoot)
+    let fogVerified = null
+    let fogMessage = null
+
+    if (batchId) {
+      const fogBatch = getFogBatch(batchId)
+      if (!fogBatch) {
+        fogVerified = false
+        fogMessage = 'Fog batch not found'
+      } else {
+        fogVerified = verifyAgainstFogBatch(batchId, leafHash, proof)
+        fogMessage = fogVerified ? 'Proof verified against fog batch' : 'Proof failed fog-batch verification'
+      }
+    }
 
     res.json({
       valid: isValid,
-      message: isValid ? 'Proof verified' : 'Proof invalid'
+      fog_verified: fogVerified,
+      message: isValid
+        ? (fogMessage || 'Proof verified')
+        : (fogMessage || 'Proof invalid')
     })
   } catch (err) {
     console.error('[MERKLE] Verify error:', err)

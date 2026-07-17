@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto'
 import { getSupabase } from '../services/supabaseClient.js'
 import { sha256Hash } from '../services/hashing.js'
 import { signRecord, fallbackSignRecord } from '../services/dilithiumSigning.js'
+import { createFogBatch } from '../services/merkle.js'
 
 const router = express.Router()
 
@@ -44,7 +45,12 @@ router.post('/push', async (req, res) => {
             }
           }
 
-          return { record_id: recordId, status: 'already_exists', synced: true }
+          return {
+            record_id: recordId,
+            status: 'already_exists',
+            synced: true,
+            sha256_hash: existingRecord.sha256_hash || null
+          }
         }
 
         const patientId = record.patient_id || record.patientId || null
@@ -128,7 +134,12 @@ router.post('/push', async (req, res) => {
           throw new Error(insertError.message || 'Failed to insert synced record')
         }
 
-        return { record_id: recordId, status: 'created', synced: true }
+        return {
+          record_id: recordId,
+          status: 'created',
+          synced: true,
+          sha256_hash: recordPayload.sha256_hash
+        }
       } catch (err) {
         return { record_id: recordId, status: 'failed', error: err.message }
       }
@@ -136,11 +147,20 @@ router.post('/push', async (req, res) => {
 
     const syncedCount = results.filter((result) => result.synced === true).length
     const failedCount = results.filter((result) => result.status === 'failed').length
+    const syncedHashes = results
+      .filter((result) => result.sha256_hash)
+      .map((result) => result.sha256_hash)
+
+    const fogBatch = syncedHashes.length > 0
+      ? createFogBatch(syncedHashes, { source: 'sync-push', recordCount: syncedHashes.length })
+      : null
 
     res.json({
       total: records.length,
       synced_count: syncedCount,
       failed_count: failedCount,
+      fog_batch_id: fogBatch?.batchId || null,
+      fog_merkle_root: fogBatch?.merkleRoot || null,
       results
     })
   } catch (err) {

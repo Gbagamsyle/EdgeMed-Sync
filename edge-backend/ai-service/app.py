@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from model import FEATURES, predict
+from model import FEATURES, predict, get_model_status
 from signing import signing_bp
 
 app = Flask(__name__)
@@ -9,7 +9,8 @@ app.register_blueprint(signing_bp, url_prefix='/signing')
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'services': ['predict', 'signing']})
+    status = get_model_status()
+    return jsonify({'status': 'ok' if status.get('ready') else 'degraded', 'services': ['predict', 'signing'], **status})
 
 @app.route('/predict', methods=['POST'])
 def predict_route():
@@ -21,7 +22,7 @@ def predict_route():
             vitals = dict(zip(FEATURES, vitals))
 
         if not isinstance(vitals, dict):
-            return jsonify({'error': 'vitals must be a JSON object or list'}), 400
+            vitals = {}
 
         result = predict(vitals)
         return jsonify(result)

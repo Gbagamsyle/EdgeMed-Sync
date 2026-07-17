@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { getSupabase } from '../services/supabaseClient.js'
 import { sha256Hash } from '../services/hashing.js'
 import { signRecord, fallbackSignRecord, verifySignature } from '../services/dilithiumSigning.js'
+import { verifyAgainstFogBatch } from '../services/merkle.js'
 import axios from 'axios'
 
 const router = express.Router()
@@ -276,7 +277,7 @@ router.post('/verify', async (req, res) => {
       return res.status(500).json({ error: 'Supabase not initialized' })
     }
 
-    const { record_id } = req.body
+    const { record_id, batchId, proof } = req.body
 
     if (!record_id) {
       return res.status(400).json({ error: 'record_id required' })
@@ -333,6 +334,17 @@ router.post('/verify', async (req, res) => {
       created_at: record.created_at
     }
 
+    const expectedHash = sha256Hash(recordPayload)
+    const hashValid = expectedHash === record.sha256_hash
+
+    let merkleValid = null
+    let merkleMessage = null
+
+    if (batchId && proof) {
+      merkleValid = verifyAgainstFogBatch(batchId, record.sha256_hash, proof)
+      merkleMessage = merkleValid ? 'Merkle proof verified against fog batch' : 'Merkle proof failed fog-batch verification'
+    }
+
     // Call verification service
     const verifyResult = await verifySignature(
       record.patient_id || record.patient_did,
@@ -353,7 +365,9 @@ router.post('/verify', async (req, res) => {
         record_id,
         valid: verifyResult.valid,
         algorithm: verifyResult.algorithm || record.signing_algorithm,
-        message: verifyResult.message,
+        hash_valid: hashValid,
+        merkle_valid: merkleValid,
+        message: [verifyResult.message, merkleMessage].filter(Boolean).join(' | '),
         timestamp: record.created_at,
         verified_at: new Date().toISOString()
       })
@@ -362,7 +376,9 @@ router.post('/verify', async (req, res) => {
         record_id,
         valid: false,
         algorithm: record.signing_algorithm,
-        message: verifyResult.error || 'Verification failed',
+        hash_valid: hashValid,
+        merkle_valid: merkleValid,
+        message: [verifyResult.error || 'Verification failed', merkleMessage].filter(Boolean).join(' | '),
         error: verifyResult.error
       })
     }

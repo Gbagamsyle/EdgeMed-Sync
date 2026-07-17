@@ -8,10 +8,21 @@ Accuracy  : 99.71% CV | 100% test
 import os
 import numpy as np
 import joblib
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.utils import shuffle
+
+try:
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.utils import shuffle
+    SKLEARN_AVAILABLE = True
+    SKLEARN_IMPORT_ERROR = None
+except Exception as exc:  # pragma: no cover - exercised in degraded environments
+    RandomForestClassifier = None
+    train_test_split = None
+    LabelEncoder = None
+    shuffle = None
+    SKLEARN_AVAILABLE = False
+    SKLEARN_IMPORT_ERROR = str(exc)
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
@@ -65,9 +76,14 @@ CLINICAL_GUIDANCE = {
     },
 }
 
+MODEL_STATUS = {'ready': False, 'reason': 'not initialized'}
+
 # ── Train from CSV ───────────────────────────────────────────────────────────
 def _train_from_csv(csv_path: str):
     """Load CSV, train RF, save model + encoder."""
+    if not SKLEARN_AVAILABLE:
+        raise RuntimeError(f'scikit-learn is unavailable: {SKLEARN_IMPORT_ERROR}')
+
     import pandas as pd
 
     df = pd.read_csv(csv_path)
@@ -104,6 +120,9 @@ def _train_from_csv(csv_path: str):
 # ── Fallback synthetic training ──────────────────────────────────────────────
 def _train_synthetic():
     """Fallback: generate minimal synthetic data and train."""
+    if not SKLEARN_AVAILABLE:
+        raise RuntimeError(f'scikit-learn is unavailable: {SKLEARN_IMPORT_ERROR}')
+
     rng = np.random.default_rng(42)
 
     def _rows(n, hr, temp, sbp, dbp, spo2, rr, label):
@@ -179,29 +198,48 @@ def _encoder_matches_dataset(label_encoder, dataset_path=DATASET_PATH):
 
 
 def _load_or_train():
-    if os.path.exists(DATASET_PATH) and _should_retrain():
-        print('[AI] Training from updated CSV dataset…')
-        return _train_from_csv(DATASET_PATH)
+    global MODEL_STATUS
 
-    if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
-        try:
-            clf = joblib.load(MODEL_PATH)
-            le  = joblib.load(ENCODER_PATH)
-            if os.path.exists(DATASET_PATH) and not _encoder_matches_dataset(le):
-                print('[AI] Saved model labels do not match the CSV dataset. Retraining…')
-                return _train_from_csv(DATASET_PATH)
+    if not SKLEARN_AVAILABLE:
+        MODEL_STATUS = {'ready': False, 'reason': f'scikit-learn is unavailable: {SKLEARN_IMPORT_ERROR}'}
+        print(f'[AI] {MODEL_STATUS["reason"]}')
+        return None, None
 
-            print('[AI] Model loaded from disk.')
+    try:
+        if os.path.exists(DATASET_PATH) and _should_retrain():
+            print('[AI] Training from updated CSV dataset…')
+            clf, le = _train_from_csv(DATASET_PATH)
+            MODEL_STATUS = {'ready': True, 'reason': 'model ready'}
             return clf, le
-        except Exception as exc:
-            print(f'[AI] Failed to load saved model: {exc}')
 
-    if os.path.exists(DATASET_PATH):
-        print('[AI] Training from CSV dataset…')
-        return _train_from_csv(DATASET_PATH)
+        if os.path.exists(MODEL_PATH) and os.path.exists(ENCODER_PATH):
+            try:
+                clf = joblib.load(MODEL_PATH)
+                le  = joblib.load(ENCODER_PATH)
+                if os.path.exists(DATASET_PATH) and not _encoder_matches_dataset(le):
+                    print('[AI] Saved model labels do not match the CSV dataset. Retraining…')
+                    clf, le = _train_from_csv(DATASET_PATH)
+                else:
+                    print('[AI] Model loaded from disk.')
+                MODEL_STATUS = {'ready': True, 'reason': 'model ready'}
+                return clf, le
+            except Exception as exc:
+                print(f'[AI] Failed to load saved model: {exc}')
 
-    print('[AI] No dataset found — using synthetic fallback.')
-    return _train_synthetic()
+        if os.path.exists(DATASET_PATH):
+            print('[AI] Training from CSV dataset…')
+            clf, le = _train_from_csv(DATASET_PATH)
+            MODEL_STATUS = {'ready': True, 'reason': 'model ready'}
+            return clf, le
+
+        print('[AI] No dataset found — using synthetic fallback.')
+        clf, le = _train_synthetic()
+        MODEL_STATUS = {'ready': True, 'reason': 'model ready'}
+        return clf, le
+    except Exception as exc:
+        MODEL_STATUS = {'ready': False, 'reason': str(exc)}
+        print(f'[AI] Model initialization failed: {exc}')
+        return None, None
 
 
 model, label_encoder = _load_or_train()
@@ -209,6 +247,41 @@ model, label_encoder = _load_or_train()
 
 def load_or_train_model():
     return model
+
+
+def get_model_status():
+    return MODEL_STATUS.copy()
+
+
+def _coerce_value(vitals: dict, key: str, default: float = 0.0) -> float:
+    if not isinstance(vitals, dict):
+        return float(default)
+
+    value = vitals.get(key, default)
+    if value in (None, ''):
+        return float(default)
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def _fallback_result(reason: str = 'model_unavailable') -> dict:
+    guidance = CLINICAL_GUIDANCE.get('Normal', {
+        'description': 'Normal',
+        'guidance': [],
+        'severity': 'normal',
+    })
+    return {
+        'label': 'Normal',
+        'confidence': 0.0,
+        'probabilities': {'Normal': 0.0},
+        'severity': guidance['severity'],
+        'description': guidance['description'],
+        'guidance': guidance['guidance'],
+        'status': reason,
+    }
 
 
 # ── Public API ───────────────────────────────────────────────────────────────
@@ -229,36 +302,46 @@ def predict(vitals: dict) -> dict:
           guidance: [str],
         }
     """
+    if not isinstance(vitals, dict):
+        vitals = {}
+
     x = np.array([[
-        float(vitals.get('heart_rate',   0)),
-        float(vitals.get('systolic_bp',  0)),
-        float(vitals.get('diastolic_bp', 0)),
-        float(vitals.get('spo2',         0)),
-        float(vitals.get('temperature',  0)),
-        float(vitals.get('resp_rate',    0)),
+        _coerce_value(vitals, 'heart_rate', 0),
+        _coerce_value(vitals, 'systolic_bp', 0),
+        _coerce_value(vitals, 'diastolic_bp', 0),
+        _coerce_value(vitals, 'spo2', 0),
+        _coerce_value(vitals, 'temperature', 0),
+        _coerce_value(vitals, 'resp_rate', 0),
     ]])
 
-    proba    = model.predict_proba(x)[0]
-    idx      = int(np.argmax(proba))
-    label    = label_encoder.inverse_transform([idx])[0]
-    confidence = float(proba[idx])
+    if model is None or label_encoder is None:
+        return _fallback_result('model_unavailable')
 
-    probabilities = {
-        label_encoder.inverse_transform([i])[0]: round(float(p), 4)
-        for i, p in enumerate(proba)
-    }
+    try:
+        proba = model.predict_proba(x)[0]
+        idx = int(np.argmax(proba))
+        label = label_encoder.inverse_transform([idx])[0]
+        confidence = float(proba[idx])
 
-    guidance = CLINICAL_GUIDANCE.get(label, {
-        'description': label,
-        'guidance': [],
-        'severity': 'unknown',
-    })
+        probabilities = {
+            label_encoder.inverse_transform([i])[0]: round(float(p), 4)
+            for i, p in enumerate(proba)
+        }
 
-    return {
-        'label':         label,
-        'confidence':    round(confidence, 4),
-        'probabilities': probabilities,
-        'severity':      guidance['severity'],
-        'description':   guidance['description'],
-        'guidance':      guidance['guidance'],
-    }
+        guidance = CLINICAL_GUIDANCE.get(label, {
+            'description': label,
+            'guidance': [],
+            'severity': 'unknown',
+        })
+
+        return {
+            'label': label,
+            'confidence': round(confidence, 4),
+            'probabilities': probabilities,
+            'severity': guidance['severity'],
+            'description': guidance['description'],
+            'guidance': guidance['guidance'],
+        }
+    except Exception as exc:
+        print(f'[AI] Prediction failed: {exc}')
+        return _fallback_result('prediction_failed')
