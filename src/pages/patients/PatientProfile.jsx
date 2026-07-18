@@ -51,8 +51,6 @@ export default function PatientProfile() {
     }
   }
 
-  const { profile } = useAuth()
-
   if (!patient) return <p>Loading...</p>
 
   return (
