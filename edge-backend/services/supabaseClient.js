@@ -14,6 +14,10 @@ export const getSupabase = () => {
     return null
   }
 
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set; backend will use the anon key and may hit Supabase RLS restrictions')
+  }
+
   supabaseInstance = createClient(supabaseUrl, supabaseKey)
   console.log('✅ Supabase client initialized')
   return supabaseInstance
