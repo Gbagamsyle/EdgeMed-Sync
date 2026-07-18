@@ -1,4 +1,3 @@
-/* eslint-env node */
 import express from 'express'
 import { randomUUID } from 'crypto'
 import { getSupabase } from '../services/supabaseClient.js'

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { recordQueue, patientCache, initDexie } from '../utils/dexieDb'
+import { recordQueue, initDexie } from '../utils/dexieDb'
 import { syncWorker } from '../workers/syncWorker'
 
 /**
@@ -24,6 +24,16 @@ export const useOfflineSync = () => {
   const [syncInProgress, setSyncInProgress] = useState(false)
   const workerRef = useRef(null)
   const statsIntervalRef = useRef(null)
+
+  const updateStats = useCallback(async () => {
+    try {
+      const stats = await recordQueue.getStats()
+      setSyncStats(stats)
+      setPendingCount(stats.pending + stats.failed)
+    } catch (err) {
+      console.error('Failed to update stats', err)
+    }
+  }, [])
 
   // Initialize Dexie and sync worker on mount
   useEffect(() => {
@@ -129,18 +139,7 @@ export const useOfflineSync = () => {
       if (statsIntervalRef.current) clearInterval(statsIntervalRef.current)
       if (workerRef.current) workerRef.current.stop()
     }
-  }, [])
-
-  // Update stats
-  const updateStats = useCallback(async () => {
-    try {
-      const stats = await recordQueue.getStats()
-      setSyncStats(stats)
-      setPendingCount(stats.pending + stats.failed)
-    } catch (err) {
-      console.error('Failed to update stats', err)
-    }
-  }, [])
+  }, [updateStats])
 
   // Queue a record for offline sync
   const queueRecord = useCallback(

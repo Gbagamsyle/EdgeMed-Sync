@@ -1,5 +1,3 @@
-/* eslint-env node */
-/* global process */
 /**
  * Dilithium Signing Service (Node.js wrapper for Python backend)
  * 

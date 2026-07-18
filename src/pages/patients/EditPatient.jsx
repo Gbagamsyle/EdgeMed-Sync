@@ -52,7 +52,7 @@ export default function EditPatient() {
     const full_name = [form.first_name, form.other_names, form.last_name].filter(Boolean).join(' ')
     const payload = { ...form, full_name }
 
-    const { data, error } = await updatePatient(id, payload)
+    const { error } = await updatePatient(id, payload)
     if (error) {
       setStatus({ type: 'error', message: error.message })
       return

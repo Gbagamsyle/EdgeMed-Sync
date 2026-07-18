@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../services/supabaseClient'
 import { BACKEND_URL } from '../../services/config'
 import Card from '../../components/ui/Card'
@@ -19,7 +19,7 @@ export default function AuditLogs() {
   const [verifyingRecords, setVerifyingRecords] = useState(new Set())
   const pageSize = 50
 
-  const loadLogs = async (filters = {}, isLoadMore = false) => {
+  const loadLogs = useCallback(async (filters = {}, isLoadMore = false) => {
     setLoading(true)
     try {
       const session = await supabase.auth.getSession()
@@ -92,7 +92,7 @@ export default function AuditLogs() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [logs, offset, pageSize, sortBy, sortOrder])
 
   const handleSort = (field) => {
     if (sortBy === field) {
@@ -171,7 +171,7 @@ export default function AuditLogs() {
 
   useEffect(() => {
     void loadLogs()
-  }, [])
+  }, [loadLogs])
 
   const handleApply = async (e) => {
     e?.preventDefault()

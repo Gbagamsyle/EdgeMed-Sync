@@ -39,7 +39,7 @@ app.use('/api/sync', syncRoutes)
 app.use('/api/audit', auditRoutes)
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error('[ERROR]', err.message)
   res.status(err.status || 500).json({
     error: err.message,

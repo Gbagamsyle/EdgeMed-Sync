@@ -1,5 +1,3 @@
-/* eslint-env node */
-/* global process */
 import express from 'express'
 import axios from 'axios'
 

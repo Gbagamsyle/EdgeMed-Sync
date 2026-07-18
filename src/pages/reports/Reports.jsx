@@ -4,7 +4,7 @@ import SignatureVerification from '../../components/reports/SignatureVerificatio
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('audit')
-  const [recordsForVerification, setRecordsForVerification] = useState([])
+  const recordsForVerification = []
 
   return (
     <div className="space-y-6">

@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
 import { diagnosisService } from '../../services/diagnosisService'
 import { getPatientById } from '../../services/patientService'
-import { getPatientVitals, getVitalStatus } from '../../services/vitalsService'
+import { getPatientVitals } from '../../services/vitalsService'
 
 const initialForm = {
   diagnosis_notes: '',
@@ -33,7 +33,6 @@ export default function DiagnosisReview() {
   const [predictionError, setPredictionError] = useState('')
   const [predictionResult, setPredictionResult] = useState(null)
   const [serviceStatus, setServiceStatus] = useState('checking')
-  const [serviceMessage, setServiceMessage] = useState('Checking AI service…')
 
   useEffect(() => {
     const loadPatient = async () => {
@@ -68,15 +67,9 @@ export default function DiagnosisReview() {
         if (!isMounted) return
 
         setServiceStatus(status?.status === 'online' ? 'online' : 'offline')
-        setServiceMessage(
-          status?.status === 'online'
-            ? 'AI inference service is online.'
-            : status?.error || 'AI inference service is currently unavailable.'
-        )
-      } catch (err) {
+      } catch {
         if (!isMounted) return
         setServiceStatus('offline')
-        setServiceMessage(err.message || 'AI inference service is currently unavailable.')
       }
     }
 
@@ -153,16 +146,6 @@ export default function DiagnosisReview() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const getStatusBadgeColor = (status) => {
-    const colors = {
-      normal: 'bg-emerald-100 text-emerald-700',
-      warning: 'bg-amber-100 text-amber-700',
-      critical: 'bg-rose-100 text-rose-700',
-      unknown: 'bg-slate-100 text-slate-700',
-    }
-    return colors[status] || colors.unknown
   }
 
   return (

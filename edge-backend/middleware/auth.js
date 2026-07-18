@@ -29,7 +29,7 @@ export const requireStaff = async (req, res, next) => {
           return next()
         }
       }
-    } catch (e) {
+    } catch {
       // ignore and fallback to Supabase token check
     }
 
