@@ -1,7 +1,9 @@
-require('dotenv').config()
-require('@nomiclabs/hardhat-ethers')
+import { config as loadEnv } from 'dotenv'
+import '@nomiclabs/hardhat-ethers'
 
-module.exports = {
+loadEnv()
+
+export default {
   solidity: '0.8.19',
   networks: {
     sepolia: {
