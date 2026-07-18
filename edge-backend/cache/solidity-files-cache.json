@@ -35,6 +35,41 @@
       "artifacts": [
         "Anchor"
       ]
+    },
+    "C:\\Users\\user\\Desktop\\EdgeMed-Sync\\edge-backend\\contracts\\MerkleAnchor.sol": {
+      "lastModificationDate": 1784364192913,
+      "contentHash": "ef665fd979d6075535de47a6654f72b7",
+      "sourceName": "contracts/MerkleAnchor.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "Anchor"
+      ]
     }
   }
 }

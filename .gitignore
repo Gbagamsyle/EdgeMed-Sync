@@ -24,6 +24,17 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.sqlite
+*.db
 
 ## Python
 __pycache__/
