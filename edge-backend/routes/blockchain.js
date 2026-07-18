@@ -30,9 +30,14 @@ router.post('/anchor', async (req, res) => {
       .from('merkle_batches')
       .select('*')
       .eq('batch_id', batchId)
-      .single()
+      .maybeSingle()
 
-    if (batchError || !batch) {
+    if (batchError) {
+      console.error('[BLOCKCHAIN] Supabase batch lookup error:', batchError)
+      return res.status(500).json({ error: 'Supabase batch lookup failed', details: batchError.message })
+    }
+
+    if (!batch) {
       return res.status(404).json({ error: 'Merkle batch not found' })
     }
 
@@ -95,9 +100,14 @@ router.get('/verify/:recordId', async (req, res) => {
       .from('records')
       .select('*')
       .eq('record_id', recordId)
-      .single()
+      .maybeSingle()
 
-    if (recordError || !record) {
+    if (recordError) {
+      console.error('[BLOCKCHAIN] Supabase record lookup error:', recordError)
+      return res.status(500).json({ error: 'Supabase record lookup failed', details: recordError.message })
+    }
+
+    if (!record) {
       return res.status(404).json({ error: 'Record not found' })
     }
 
@@ -109,9 +119,14 @@ router.get('/verify/:recordId', async (req, res) => {
       .from('merkle_batches')
       .select('*')
       .contains('leaf_hashes', [record.sha256_hash])
-      .single()
+      .maybeSingle()
 
-    if (batchError || !batch) {
+    if (batchError) {
+      console.error('[BLOCKCHAIN] Supabase batch lookup error:', batchError)
+      return res.status(500).json({ error: 'Supabase batch lookup failed', details: batchError.message })
+    }
+
+    if (!batch) {
       return res.status(404).json({ error: 'Merkle batch containing record not found' })
     }
 
