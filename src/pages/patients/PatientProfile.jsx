@@ -6,6 +6,7 @@ import { BACKEND_URL } from '../../services/config'
 import Card from '../../components/ui/Card'
 
 export default function PatientProfile() {
+  const { profile } = useAuth()
   const { id } = useParams()
   const [patient, setPatient] = useState(null)
 
