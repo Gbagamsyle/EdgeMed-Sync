@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import logo from '../../assets/logo.png'
 
 const commonItems = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -9,7 +10,6 @@ const commonItems = [
 const roleItems = {
   admin: [
     { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
-    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: 'medical_information' },
     { to: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
     { to: '/dashboard/settings', label: 'Settings', icon: 'settings' },
   ],
@@ -39,9 +39,11 @@ export default function Sidebar() {
       <div className="h-full p-4">
         <section className="mb-4 rounded-xl border border-sky-700 bg-sky-700/80 p-3 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined rounded-full bg-white/20 p-1.5 text-base text-white">health_and_safety</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1.5">
+              <img src={logo} alt="EdgeMed logo" className="h-full w-full object-contain" />
+            </div>
             <div>
-              <h2 className="text-xs font-semibold text-white">EdgeMed Command</h2>
+              <h2 className="text-xs font-semibold text-white">Edge-Health Command</h2>
               <p className="text-[10px] text-sky-100/80">AI hospital operations</p>
             </div>
           </div>
