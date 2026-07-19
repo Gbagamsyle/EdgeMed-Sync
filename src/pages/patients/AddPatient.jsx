@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { createPatient } from '../../services/patientService'
 import { BACKEND_URL } from '../../services/config'
 import Input from '../../components/ui/Input'
@@ -6,6 +8,9 @@ import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
 
 export default function AddPatient() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.role ? profile.role.trim().toLowerCase() === 'admin' : false
+
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -27,6 +32,7 @@ export default function AddPatient() {
   }
 
   const handleSubmit = async (e) => {
+    if (isAdmin) return
     e.preventDefault()
     setStatus({ type: 'loading', message: 'Saving patient details...' })
 
@@ -73,6 +79,20 @@ export default function AddPatient() {
     setDid(identityData.did)
     console.log('New patient', data)
     setForm({ first_name: '', last_name: '', other_names: '', email: '', nin: '', phone: '', gender: '', blood_group: '', address: '', pin: '' })
+  }
+
+  if (isAdmin) {
+    return (
+      <div className="mx-auto max-w-4xl rounded-3xl border border-rose-200 bg-rose-50 p-8 text-slate-900 shadow-xl shadow-rose-200/50">
+        <h1 className="text-3xl font-bold">Access denied</h1>
+        <p className="mt-3 text-sm text-slate-700">Admin users are not allowed to add new patients.</p>
+        <div className="mt-6">
+          <Link to="/dashboard" className="inline-flex items-center rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

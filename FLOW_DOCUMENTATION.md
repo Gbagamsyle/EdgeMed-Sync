@@ -1,7 +1,7 @@
-# EdgeMed Sync - Application Flow & Architecture
+# Edge-Health Sync - Application Flow & Architecture
 
 ## 1. Purpose
-This document explains the main flow of the `EdgeMed-Sync` project so it can be shared with other team members or stakeholders. It describes:
+This document explains the main flow of the `Edge-Health-Sync` project so it can be shared with other team members or stakeholders. It describes:
 - frontend application flow
 - backend route responsibilities
 - identity and QR flow
@@ -94,7 +94,7 @@ Backend:
 
 ### 4.6 Offline Sync
 - `src/hooks/useOfflineSync.js` manages online/offline status and queue statistics.
-- `src/utils/dexieDb.js` stores queued records in IndexedDB under `EdgeMedSync`.
+- `src/utils/dexieDb.js` stores queued records in IndexedDB under `Edge-HealthSync`.
 - Queue schema includes `recordQueue` items with `status`, `attempts`, and timestamps.
 - When online, the app can trigger the sync worker to push pending records.
 - The worker uses a message-based interface to coordinate sync events.

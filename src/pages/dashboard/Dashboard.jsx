@@ -31,7 +31,8 @@ export default function Dashboard() {
   const [loadingHealth, setLoadingHealth] = useState(true)
   const [aiHealth, setAiHealth] = useState({ status: 'unknown', error: null })
 
-  const firstName = profile?.full_name ? profile.full_name.split(' ')[0] : 'Doctor'
+  const isAdmin = profile?.role ? profile.role.trim().toLowerCase() === 'admin' : false
+  const firstName = profile?.full_name ? profile.full_name.split(' ')[0] : isAdmin ? 'Admin' : 'Doctor'
 
   const loadMetrics = async () => {
     setLoadingStats(true)
@@ -118,6 +119,18 @@ export default function Dashboard() {
     { label: 'Recent audit events', value: loadingHealth ? '—' : formatCount(auditActivity.length), description: 'Latest system actions' },
   ]
 
+  const actionCards = isAdmin
+    ? [
+        { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: 'people' },
+        { title: 'System Reports', description: 'Monitor performance and audit trends.', href: '/dashboard/reports', icon: 'analytics' },
+        { title: 'Platform Settings', description: 'Adjust system preferences and security options.', href: '/dashboard/settings', icon: 'settings' },
+      ]
+    : [
+        { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: 'people' },
+        { title: 'Diagnosis', description: 'Create and manage patient diagnoses.', href: '/dashboard/diagnosis', icon: 'health_and_safety' },
+        { title: 'QR Scanner', description: 'Quickly access patient information.', href: '/dashboard/qr/scan', icon: 'qr_code_2' },
+      ]
+
   const activityItems = auditActivity
 
   return (
@@ -152,13 +165,13 @@ export default function Dashboard() {
             <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <p className="text-xs font-bold uppercase tracking-wider text-sky-700">Priority Action</p>
-                  <h2 className="mt-2 text-xl font-bold text-slate-900">Patient Intake Review</h2>
+                  <h2 className="mt-2 text-xl font-bold text-slate-900">{isAdmin ? 'System Oversight' : 'Patient Intake Review'}</h2>
                 </div>
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
                   <span className="material-symbols-outlined text-base text-sky-600">checklist</span>
                 </span>
               </div>
-            <p className="text-sm leading-6 text-slate-600">Review latest registrations, activate QR codes, and process any pending alerts before shift change.</p>
+            <p className="text-sm leading-6 text-slate-600">{isAdmin ? 'Review system alerts, audit logs, and platform health to keep operations running smoothly.' : 'Review latest registrations, activate QR codes, and process any pending alerts before shift change.'}</p>
             <div className="mt-5 space-y-3">
               <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-xs">
                 <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
@@ -274,29 +287,15 @@ export default function Dashboard() {
       </section>
 
       <section className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <a href="/dashboard/patients" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-50 mb-4">
-            <span className="material-symbols-outlined text-xl text-cyan-600">people</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">Manage Patients</h3>
-          <p className="mt-2 text-sm text-slate-600">View, add, and update patient records.</p>
-        </a>
-
-        <a href="/dashboard/diagnosis" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 mb-4">
-            <span className="material-symbols-outlined text-xl text-emerald-600">health_and_safety</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">Diagnosis</h3>
-          <p className="mt-2 text-sm text-slate-600">Create and manage patient diagnoses.</p>
-        </a>
-
-        <a href="/dashboard/qr/scan" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 mb-4">
-            <span className="material-symbols-outlined text-xl text-indigo-600">qr_code_2</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">QR Scanner</h3>
-          <p className="mt-2 text-sm text-slate-600">Quickly access patient information.</p>
-        </a>
+        {actionCards.map((card) => (
+          <a key={card.title} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 mb-4">
+              <span className="material-symbols-outlined text-xl text-slate-600">{card.icon}</span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
+            <p className="mt-2 text-sm text-slate-600">{card.description}</p>
+          </a>
+        ))}
       </section>
 
       <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">

@@ -1,6 +1,6 @@
-﻿# EdgeMed Sync
+﻿# Edge-Health Sync
 
-EdgeMed Sync is a patient-record and care coordination platform with a React frontend, a Node.js backend, and a Python AI service. The app supports patient management, vitals collection, QR-based workflows, and Supabase-backed record syncing.
+Edge-Health Sync is a patient-record and care coordination platform with a React frontend, a Node.js backend, and a Python AI service. The app supports patient management, vitals collection, QR-based workflows, and Supabase-backed record syncing.
 
 ## Prerequisites
 

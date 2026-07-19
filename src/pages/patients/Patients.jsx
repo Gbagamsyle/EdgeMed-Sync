@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { getPatients } from '../../services/patientService'
 
 export default function Patients() {
@@ -15,6 +16,9 @@ export default function Patients() {
       setPatients(data)
     })
   }, [])
+
+  const { profile } = useAuth()
+  const isAdmin = profile?.role ? profile.role.trim().toLowerCase() === 'admin' : false
 
   const filteredPatients = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -48,12 +52,18 @@ export default function Patients() {
           <p className="mt-1 text-sm text-slate-500">Review patient records, update details, and manage your roster all in one place.</p>
         </div>
 
-        <Link
-          to="/dashboard/patients/add"
-          className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
-        >
-          Add Patient
-        </Link>
+        {!isAdmin ? (
+          <Link
+            to="/dashboard/patients/add"
+            className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+          >
+            Add Patient
+          </Link>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-500">
+            Add Patient access restricted for admin
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_420px]">

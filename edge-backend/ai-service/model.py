@@ -1,6 +1,6 @@
 """
-EdgeMed-Sync — AI Diagnostic Model
-Trained on: edgemed_vitals_dataset.csv (1,400 records, 4 classes)
+Edge-Health — AI Diagnostic Model
+Trained on: edge_health_vitals_dataset.csv (1,400 records, 4 classes)
 Algorithm : Random Forest (sklearn), 120 estimators, max_depth=6
 Accuracy  : 99.71% CV | 100% test
 """
@@ -28,7 +28,7 @@ except Exception as exc:  # pragma: no cover - exercised in degraded environment
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'disease_model.joblib')
 ENCODER_PATH = os.path.join(BASE_DIR, 'label_encoder.joblib')
-DATASET_PATH = os.path.join(BASE_DIR, 'edgemed_vitals_dataset.csv')
+DATASET_PATH = os.path.join(BASE_DIR, 'edge_health_vitals_dataset.csv')
 
 FEATURES = ['heart_rate', 'systolic_bp', 'diastolic_bp', 'spo2', 'temperature', 'resp_rate']
 feature_names = FEATURES

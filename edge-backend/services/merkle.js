@@ -2,7 +2,7 @@ import { Buffer } from 'buffer'
 import { MerkleTree } from 'merkletreejs'
 import crypto from 'crypto'
 
-const fogBatches = globalThis.__edgeMedFogBatches || (globalThis.__edgeMedFogBatches = new Map())
+const fogBatches = globalThis.__edgeHealthFogBatches || (globalThis.__edgeHealthFogBatches = new Map())
 
 /**
  * SHA-256 hash function for Merkle tree

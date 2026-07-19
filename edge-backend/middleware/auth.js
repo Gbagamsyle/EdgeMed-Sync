@@ -40,13 +40,17 @@ export const requireStaff = async (req, res, next) => {
       return res.status(500).json({ error: 'Supabase config missing on server' })
     }
 
-    // Call Supabase auth endpoint to get user from token
-    const userResp = await axios.get(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: apiKey
-      }
-    })
+    let userResp
+    try {
+      userResp = await axios.get(`${supabaseUrl}/auth/v1/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: apiKey
+        }
+      })
+    } catch {
+      return res.status(401).json({ error: 'Invalid or expired token' })
+    }
 
     const user = userResp.data
     if (!user || !user.id) {

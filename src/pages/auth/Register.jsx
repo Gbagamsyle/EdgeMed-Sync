@@ -81,7 +81,7 @@ export default function Register() {
       <div className="mx-auto flex w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-xl md:flex-row md:divide-x md:divide-white/20">
         <aside className="flex flex-1 flex-col justify-center gap-6 px-8 py-10 text-center md:px-14">
           <div className="mx-auto max-w-xs">
-            <h1 className="text-4xl font-extrabold leading-tight text-white">Join EdgeMed Connect</h1>
+            <h1 className="text-4xl font-extrabold leading-tight text-white">Join Edge-Health Connect</h1>
             <p className="mt-4 text-sm text-slate-200">Modern, secure Hospital operations for triage, scheduling, and analytics.</p>
           </div>
           <div className="mx-auto flex max-w-xs justify-center gap-3">

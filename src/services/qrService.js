@@ -51,7 +51,7 @@ export const extractDIDFromQR = (qrData) => {
     return cleaned
   }
 
-  // Try to extract from potential URL format (e.g., edgemed://patient/did:cdss:...)
+  // Try to extract from potential URL format (e.g., edge-health://patient/did:cdss:...)
   const didMatch = cleaned.match(/did:cdss:[a-f0-9]{16}/i)
   if (didMatch) {
     return didMatch[0]

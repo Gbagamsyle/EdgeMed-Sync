@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 
 // Initialize IndexedDB database for offline caching
-export const db = new Dexie('EdgeMedSync')
+export const db = new Dexie('EdgeHealthSync')
 
 db.version(1).stores({
   // Offline queue for records waiting to sync
@@ -169,7 +169,7 @@ export const syncLog = {
 // Initialize Dexie (check if available)
 export const initDexie = async () => {
   try {
-    const isSupported = await Dexie.exists('EdgeMedSync')
+    const isSupported = await Dexie.exists('EdgeHealthSync')
     console.log('Dexie initialized. IndexedDB support:', isSupported)
     return true
   } catch (err) {

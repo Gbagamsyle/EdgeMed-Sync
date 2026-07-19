@@ -5,6 +5,10 @@ import { createMerkleTree, getMerkleProof, verifyMerkleProof } from '../services
 
 const router = express.Router()
 
+router.get('/status', (req, res) => {
+  res.json({ status: 'ok', configured: isBlockchainConfigured() })
+})
+
 /**
  * POST /api/blockchain/anchor
  * Submit Merkle root to blockchain via deployed anchor contract

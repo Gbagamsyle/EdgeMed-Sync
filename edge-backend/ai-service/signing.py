@@ -1,6 +1,6 @@
 """
 Dilithium Signing Service
-Provides post-quantum cryptographic signing for EdgeMed records.
+Provides post-quantum cryptographic signing for Edge-Health records.
 """
 
 import hashlib

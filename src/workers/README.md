@@ -1,6 +1,6 @@
 # Offline Sync System
 
-This scaffold implements offline-first record queuing with automatic background sync for the EdgeMed platform.
+This scaffold implements offline-first record queuing with automatic background sync for the Edge-Health platform.
 
 ## Architecture
 
@@ -226,7 +226,7 @@ logs.forEach(l => console.log(l.action, l.status, l.timestamp))
 ```
 
 ### Inspect Raw IndexedDB
-Open browser DevTools → Application → IndexedDB → EdgeMedSync
+Open browser DevTools → Application → IndexedDB → EdgeHealthSync
 
 Tables:
 - `recordQueue` - All queued records

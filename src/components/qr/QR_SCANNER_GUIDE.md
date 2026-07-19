@@ -200,7 +200,7 @@ All already in package.json ✓
 ### Offline lookup not working
 - Check that patient was scanned while online (to cache them)
 - Verify IndexedDB is enabled in browser
-- Try DevTools Application → IndexedDB → EdgeMedSync → patients table
+- Try DevTools Application → IndexedDB → EdgeHealthSync → patients table
 
 ## API Reference
 
