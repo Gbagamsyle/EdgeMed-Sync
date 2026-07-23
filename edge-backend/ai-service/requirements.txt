@@ -3,7 +3,7 @@ scikit-learn>=1.0.0
 joblib>=1.1.0
 numpy>=1.21.0
 pandas>=2.0.0
-dilithium-py>=1.4.0
+# dilithium-py>=1.4.0  # Optional post-quantum signing. Leave commented unless the host supports it.
 # Post-quantum cryptography (optional)
 # Uncomment one:
 # pyoqs>=0.8.0  # liboqs Python bindings (requires C compiler)
