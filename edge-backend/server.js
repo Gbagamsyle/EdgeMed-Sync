@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
 import compression from 'compression'
+import rateLimit from 'express-rate-limit'
+import helmet from 'helmet'
 
 // Import routes
 import identityRoutes from './routes/identity.js'
@@ -19,8 +21,36 @@ import auditRoutes from './routes/audit.js'
 export const app = express()
 const PORT = process.env.PORT || 3001
 
+// Global rate limit
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests, please try again later' }
+})
+
+// Stricter limit on AI endpoint
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: 'AI prediction rate limit exceeded' }
+})
+
 // Middleware
 app.use(compression())
+app.use(helmet())
+
+// Force HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`)
+    }
+    next()
+  })
+}
+
+app.use(limiter)
+app.use('/api/ai', aiLimiter)
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
