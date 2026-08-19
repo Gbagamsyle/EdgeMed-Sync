@@ -21,6 +21,9 @@ import auditRoutes from './routes/audit.js'
 export const app = express()
 const PORT = process.env.PORT || 3001
 
+// Normalize frontend origin (remove trailing slash if present)
+const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
+
 // Global rate limit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -52,7 +55,7 @@ if (process.env.NODE_ENV === 'production') {
 app.use(limiter)
 app.use('/api/ai', aiLimiter)
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: FRONTEND_ORIGIN,
   credentials: true
 }))
 app.use(express.json())
@@ -92,7 +95,7 @@ if (isMainModule) {
   app.listen(PORT, () => {
     console.log(`🚀 Edge-Health Backend running on http://localhost:${PORT}`)
     console.log(`📊 AI Service: ${process.env.AI_SERVICE_URL}`)
-    console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL}`)
+    console.log(`🌐 CORS enabled for: ${FRONTEND_ORIGIN}`)
   })
 }
 
