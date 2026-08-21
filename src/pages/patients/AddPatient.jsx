@@ -9,7 +9,8 @@ import Card from '../../components/ui/Card'
 
 export default function AddPatient() {
   const { profile } = useAuth()
-  const isAdmin = profile?.role ? profile.role.trim().toLowerCase() === 'admin' : false
+  const role = profile?.role ? profile.role.trim().toLowerCase() : ''
+  const canAddPatients = role === 'receptionist'
 
   const [form, setForm] = useState({
     first_name: '',
@@ -31,17 +32,24 @@ export default function AddPatient() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  const resetForm = () => {
+    setForm({ first_name: '', last_name: '', other_names: '', email: '', nin: '', phone: '', gender: '', blood_group: '', address: '', pin: '' })
+  }
+
   const handleSubmit = async (e) => {
-    if (isAdmin) return
+    if (!canAddPatients) return
     e.preventDefault()
     setStatus({ type: 'loading', message: 'Saving patient details...' })
+    setQrCode(null)
+    setDid(null)
 
     const joinedName = [form.first_name, form.other_names, form.last_name]
       .filter(Boolean)
       .join(' ')
 
+    const { pin, ...patientDetails } = form
     const payload = {
-      ...form,
+      ...patientDetails,
       full_name: joinedName,
     }
 
@@ -50,7 +58,7 @@ export default function AddPatient() {
       return
     }
 
-    if (!form.pin || !/^\d{4}$/.test(form.pin)) {
+    if (!pin || !/^\d{4}$/.test(pin)) {
       setStatus({ type: 'error', message: 'Please enter a 4-digit patient PIN for QR recovery.' })
       return
     }
@@ -62,30 +70,59 @@ export default function AddPatient() {
       return
     }
 
-    const identityResponse = await fetch(`${BACKEND_URL}/api/identity/register`, {
+    resetForm()
+    setStatus({ type: 'loading', message: 'Patient saved. Generating QR code...' })
+
+    void fetch(`${BACKEND_URL}/api/audit/log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patient_id: data.id, pin: form.pin })
+      body: JSON.stringify({
+        event_type: 'patient_created',
+        patient_id: data.id,
+        staff_id: profile?.id || null,
+        staff_name: profile?.full_name || profile?.name || null,
+        details: { via: 'AddPatient UI' },
+      }),
+    }).catch((auditError) => {
+      console.warn('Audit log failed:', auditError)
     })
 
-    const identityData = await identityResponse.json()
-    if (!identityResponse.ok) {
-      setStatus({ type: 'error', message: identityData.error || 'Failed to generate patient QR code.' })
-      return
-    }
+    const identityController = new AbortController()
+    const identityTimeout = setTimeout(() => identityController.abort(), 15000)
 
-    setStatus({ type: 'success', message: 'Patient added and QR generated successfully.' })
-    setQrCode(identityData.qrCode)
-    setDid(identityData.did)
-    console.log('New patient', data)
-    setForm({ first_name: '', last_name: '', other_names: '', email: '', nin: '', phone: '', gender: '', blood_group: '', address: '', pin: '' })
+    try {
+      const identityResponse = await fetch(`${BACKEND_URL}/api/identity/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: data.id, pin }),
+        signal: identityController.signal,
+      })
+
+      const identityData = await identityResponse.json()
+      if (!identityResponse.ok) {
+        setStatus({ type: 'warning', message: identityData.error || 'Patient saved, but QR generation failed.' })
+        return
+      }
+
+      setStatus({ type: 'success', message: 'Patient added and QR generated successfully.' })
+      setQrCode(identityData.qrCode)
+      setDid(identityData.did)
+      console.log('New patient', data)
+    } catch (identityError) {
+      const message = identityError.name === 'AbortError'
+        ? 'Patient saved, but QR generation timed out. Check that the backend and signing service are running.'
+        : `Patient saved, but QR generation failed: ${identityError.message}`
+      setStatus({ type: 'warning', message })
+    } finally {
+      clearTimeout(identityTimeout)
+    }
   }
 
-  if (isAdmin) {
+  if (!canAddPatients) {
     return (
       <div className="mx-auto max-w-4xl rounded-3xl border border-rose-200 bg-rose-50 p-8 text-slate-900 shadow-xl shadow-rose-200/50">
         <h1 className="text-3xl font-bold">Access denied</h1>
-        <p className="mt-3 text-sm text-slate-700">Admin users are not allowed to add new patients.</p>
+        <p className="mt-3 text-sm text-slate-700">Only receptionists are allowed to add new patients.</p>
         <div className="mt-6">
           <Link to="/dashboard" className="inline-flex items-center rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
             Back to Dashboard
@@ -104,6 +141,8 @@ export default function AddPatient() {
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                 : status.type === 'error'
                 ? 'border-rose-200 bg-rose-50 text-rose-700'
+                : status.type === 'warning'
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
                 : 'border-slate-200 bg-slate-50 text-slate-700'
             }`}
             role="status"

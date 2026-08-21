@@ -38,7 +38,7 @@ export default function Settings() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2 shadow-lg backdrop-blur">
-              <img src={logo} alt="EdgeMed logo" className="h-10 w-10 object-contain" />
+              <img src={logo} alt="Edge-Health logo" className="h-10 w-10 object-contain" />
             </div>
             <div className="max-w-2xl">
               <p className="mb-2 text-sm font-semibold uppercase tracking-[0.35em] text-cyan-200">Admin console</p>

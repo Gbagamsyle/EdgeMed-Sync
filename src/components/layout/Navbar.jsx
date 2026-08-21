@@ -17,10 +17,10 @@ export default function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 flex h-24 items-center justify-between border-b border-sky-700 bg-sky-600 px-6 shadow-lg">
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 p-1.5 shadow-inner">
-          <img src={logo} alt="EdgeMed logo" className="h-full w-full object-contain" />
+          <img src={logo} alt="Edge-Health logo" className="h-full w-full object-contain" />
         </div>
         <div className="flex flex-col justify-center gap-1">
-          <h1 className="text-lg font-bold tracking-wide text-white">Edge-Health Dashboard</h1>
+          <h1 className="text-lg font-bold tracking-wide text-white">Edge-Health</h1>
         </div>
       </div>
 

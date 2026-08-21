@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
 import { lookupPatientByDID, extractDIDFromQR, validateDID, isCameraSupported, requestCameraPermission } from '../../services/qrService'
 import { patientCache } from '../../utils/dexieDb'
 import Button from '../ui/Button'
@@ -9,6 +9,7 @@ import Card from '../ui/Card'
 export default function QRScanner() {
   const navigate = useNavigate()
   const html5QrcodeRef = useRef(null)
+  const uploadInputRef = useRef(null)
   const [scanning, setScanning] = useState(false)
   const [scannedDID, setScannedDID] = useState(null)
   const [patient, setPatient] = useState(null)
@@ -221,6 +222,29 @@ export default function QRScanner() {
     await initScanner()
   }
 
+  const handleUploadQR = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) return
+
+    setError(null)
+    setLoading(true)
+
+    const fileScanner = new Html5Qrcode('qr-file-reader')
+
+    try {
+      const decodedText = await fileScanner.scanFile(file, true)
+      await fileScanner.clear()
+      await onScanSuccess(decodedText)
+    } catch (err) {
+      console.error('[QRScanner] Upload scan error:', err)
+      setError('Could not read a QR code from that image. Choose a clear QR code image and try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -284,6 +308,26 @@ export default function QRScanner() {
                   <span className="material-symbols-outlined mr-2 text-base">photo_camera</span>
                   Start Camera Scanner
                 </Button>
+
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadQR}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={loading}
+                  className="mt-3 w-full"
+                >
+                  <span className="material-symbols-outlined mr-2 text-base">upload_file</span>
+                  Upload QR Image
+                </Button>
+                <p className="mt-2 text-xs text-slate-500">Choose a QR code image from this computer.</p>
+                <div id="qr-file-reader" className="hidden" aria-hidden="true" />
               </div>
             ) : scanning ? (
               <div>
@@ -434,11 +478,6 @@ export default function QRScanner() {
         </div>
       </div>
 
-      {/* Camera Support Info */}
-      <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
-        <p className="font-medium">📱 Quick Tip</p>
-        <p className="mt-1">For best results on mobile devices, hold the phone steady and point the camera at the QR code from about 6 inches away.</p>
-      </div>
     </div>
   )
 }

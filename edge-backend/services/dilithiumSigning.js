@@ -34,7 +34,7 @@ export const generateKeyPair = async (subjectId, subjectType = 'patient') => {
         subject_id: subjectId,
         subject_type: subjectType
       },
-      { timeout: 10000 }
+      { timeout: 3000 }
     )
 
     return {

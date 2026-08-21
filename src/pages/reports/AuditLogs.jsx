@@ -111,7 +111,7 @@ export default function AuditLogs() {
 
     setVerifyingRecords(prev => new Set([...prev, recordId]))
     try {
-      const response = await fetch('/api/records/verify', {
+      const response = await fetch(`${BACKEND_URL}/api/records/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record_id: recordId, patient_id: patientId })

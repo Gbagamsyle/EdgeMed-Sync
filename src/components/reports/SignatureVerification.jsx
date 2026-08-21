@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react'
+import { BACKEND_URL } from '../../services/config'
 
 export default function SignatureVerification({ records = [] }) {
   const [verificationStatus, setVerificationStatus] = useState({})
@@ -17,7 +18,7 @@ export default function SignatureVerification({ records = [] }) {
   const verifyRecord = async (recordId, patientId) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/records/verify', {
+      const response = await fetch(`${BACKEND_URL}/api/records/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record_id: recordId, patient_id: patientId })
@@ -48,7 +49,7 @@ export default function SignatureVerification({ records = [] }) {
     setLoading(true)
     try {
       const recordIds = records.map(r => r.record_id)
-      const response = await fetch('/api/records/verify-batch', {
+      const response = await fetch(`${BACKEND_URL}/api/records/verify-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record_ids: recordIds })

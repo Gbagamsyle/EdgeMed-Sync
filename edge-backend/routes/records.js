@@ -5,6 +5,7 @@ import { sha256Hash } from '../services/hashing.js'
 import { signRecord, fallbackSignRecord, verifySignature } from '../services/dilithiumSigning.js'
 import { verifyAgainstFogBatch } from '../services/merkle.js'
 import axios from 'axios'
+import { requireStaff } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -197,6 +198,36 @@ router.post('/', async (req, res) => {
     })
   } catch (err) {
     console.error('[RECORDS] Create error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/records
+ * List records for audit and signature verification workflows
+ */
+router.get('/', requireStaff, async (req, res) => {
+  try {
+    const supabase = getSupabase()
+    if (!supabase) {
+      return res.status(500).json({ error: 'Supabase not initialized' })
+    }
+
+    const limit = Math.min(Number(req.query.limit) || 100, 500)
+    const { data, error } = await supabase
+      .from('records')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('[RECORDS] List error:', error)
+      return res.status(500).json({ error: 'Failed to fetch records' })
+    }
+
+    res.json({ records: data || [] })
+  } catch (err) {
+    console.error('[RECORDS] List error:', err)
     res.status(500).json({ error: err.message })
   }
 })

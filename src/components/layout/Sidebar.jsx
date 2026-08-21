@@ -40,7 +40,7 @@ export default function Sidebar() {
         <section className="mb-4 rounded-xl border border-sky-700 bg-sky-700/80 p-3 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1.5">
-              <img src={logo} alt="EdgeMed logo" className="h-full w-full object-contain" />
+              <img src={logo} alt="Edge-Health logo" className="h-full w-full object-contain" />
             </div>
             <div>
               <h2 className="text-xs font-semibold text-white">Edge-Health Command</h2>
