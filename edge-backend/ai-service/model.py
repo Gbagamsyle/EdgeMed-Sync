@@ -1,8 +1,8 @@
 """
 Edge-Health — AI Diagnostic Model
-Trained on: edge_health_vitals_dataset.csv (1,400 records, 4 classes)
+Trained on: HYBRID DATASET.xlsx (5,200 records, 4 classes)
 Algorithm : Random Forest (sklearn), 120 estimators, max_depth=6
-Accuracy  : 99.71% CV | 100% test
+Accuracy  : benchmarked against label-balanced hybrid dataset
 """
 
 import os
@@ -28,7 +28,21 @@ except Exception as exc:  # pragma: no cover - exercised in degraded environment
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'disease_model.joblib')
 ENCODER_PATH = os.path.join(BASE_DIR, 'label_encoder.joblib')
-DATASET_PATH = os.path.join(BASE_DIR, 'edge_health_vitals_dataset.csv')
+DATASET_CANDIDATES = [
+    os.path.join(BASE_DIR, 'HYBRID DATASET.xlsx'),
+    os.path.join(BASE_DIR, 'HYBRID DATASET.xls'),
+    os.path.join(BASE_DIR, 'edge_health_vitals_dataset.csv'),
+]
+
+
+def _resolve_dataset_path():
+    for candidate in DATASET_CANDIDATES:
+        if os.path.exists(candidate):
+            return candidate
+    return DATASET_CANDIDATES[-1]
+
+
+DATASET_PATH = _resolve_dataset_path()
 
 FEATURES = ['heart_rate', 'systolic_bp', 'diastolic_bp', 'spo2', 'temperature', 'resp_rate']
 feature_names = FEATURES
@@ -79,14 +93,30 @@ CLINICAL_GUIDANCE = {
 MODEL_STATUS = {'ready': False, 'reason': 'not initialized'}
 
 # ── Train from CSV ───────────────────────────────────────────────────────────
+def _read_dataset(dataset_path: str):
+    """Read CSV or Excel dataset files with a single code path."""
+    import pandas as pd
+
+    if not os.path.exists(dataset_path):
+        return pd.DataFrame()
+
+    path_lower = str(dataset_path).lower()
+    if path_lower.endswith(('.xlsx', '.xls', '.xlsm', '.xlsb')):
+        return pd.read_excel(dataset_path)
+    return pd.read_csv(dataset_path)
+
+
 def _train_from_csv(csv_path: str):
-    """Load CSV, train RF, save model + encoder."""
+    """Load the active dataset, train RF, save model + encoder."""
     if not SKLEARN_AVAILABLE:
         raise RuntimeError(f'scikit-learn is unavailable: {SKLEARN_IMPORT_ERROR}')
 
     import pandas as pd
 
-    df = pd.read_csv(csv_path)
+    df = _read_dataset(csv_path)
+    if df.empty:
+        raise FileNotFoundError(f'Dataset not found: {csv_path}')
+
     df = df.dropna(subset=FEATURES + ['diagnosis'])
     df = shuffle(df, random_state=42)
 
@@ -177,9 +207,7 @@ def _dataset_labels(dataset_path=DATASET_PATH):
     if not os.path.exists(dataset_path):
         return []
 
-    import pandas as pd
-
-    df = pd.read_csv(dataset_path)
+    df = _read_dataset(dataset_path)
     if 'diagnosis' not in df.columns:
         return []
 

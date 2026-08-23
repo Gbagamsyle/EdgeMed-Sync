@@ -287,15 +287,29 @@ export default function Dashboard() {
       </section>
 
       <section className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {actionCards.map((card) => (
-          <a key={card.title} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 mb-4">
-              <span className="material-symbols-outlined text-xl text-slate-600">{card.icon}</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
-            <p className="mt-2 text-sm text-slate-600">{card.description}</p>
-          </a>
-        ))}
+        {actionCards.map((card) => {
+          if (card.title === 'QR Scanner') {
+            return (
+              <a key={card.title} href="/dashboard/qr/scan" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 mb-4">
+                  <span className="material-symbols-outlined text-xl text-slate-600">{card.icon}</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
+                <p className="mt-2 text-sm text-slate-600">{card.description}</p>
+              </a>
+            )
+          }
+
+          return (
+            <a key={card.title} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 mb-4">
+                <span className="material-symbols-outlined text-xl text-slate-600">{card.icon}</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
+              <p className="mt-2 text-sm text-slate-600">{card.description}</p>
+            </a>
+          )
+        })}
       </section>
 
       <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">

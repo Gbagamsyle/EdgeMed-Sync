@@ -3,6 +3,7 @@ scikit-learn>=1.0.0
 joblib>=1.1.0
 numpy>=1.21.0
 pandas>=2.0.0
+openpyxl>=3.1.0
 # WSGI server for production
 gunicorn>=21.0.0
 # Post-quantum cryptography packages removed — using Ed25519 fallback in signing.py
