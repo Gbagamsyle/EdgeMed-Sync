@@ -9,6 +9,9 @@ export default function PatientProfile() {
   const { profile } = useAuth()
   const { id } = useParams()
   const [patient, setPatient] = useState(null)
+  const [identityPin, setIdentityPin] = useState('')
+  const [identityStatus, setIdentityStatus] = useState({ type: '', message: '' })
+  const [registeringIdentity, setRegisteringIdentity] = useState(false)
 
   useEffect(() => {
     void getPatientById(id).then(({ data, error }) => {
@@ -19,6 +22,39 @@ export default function PatientProfile() {
       setPatient(data)
     })
   }, [id])
+
+  const registerIdentity = async (event) => {
+    event.preventDefault()
+
+    if (!/^\d{4}$/.test(identityPin)) {
+      setIdentityStatus({ type: 'error', message: 'Enter a 4-digit PIN.' })
+      return
+    }
+
+    setRegisteringIdentity(true)
+    setIdentityStatus({ type: '', message: '' })
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/identity/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: patient.id, pin: identityPin }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to register patient identity.')
+      }
+
+      setPatient((current) => ({ ...current, did: payload.did, qr_code: payload.qrCode }))
+      setIdentityPin('')
+      setIdentityStatus({ type: 'success', message: 'Identity registered. You can now save diagnoses for this patient.' })
+    } catch (error) {
+      setIdentityStatus({ type: 'error', message: error.message || 'Unable to register patient identity.' })
+    } finally {
+      setRegisteringIdentity(false)
+    }
+  }
 
   const printQR = () => {
     if (!patient?.qr_code) return
@@ -121,12 +157,40 @@ export default function PatientProfile() {
               )}
 
               <div className="w-full">
-                <button
-                  onClick={printQR}
-                  className="w-full rounded-2xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                >
-                  Print QR
-                </button>
+                {patient.did ? (
+                  <button
+                    onClick={printQR}
+                    className="w-full rounded-2xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    Print QR
+                  </button>
+                ) : (
+                  <form onSubmit={registerIdentity} className="space-y-3">
+                    <p className="text-sm text-slate-600">Register an identity before creating diagnosis records.</p>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={identityPin}
+                      onChange={(event) => setIdentityPin(event.target.value.replace(/\D/g, ''))}
+                      placeholder="4-digit PIN"
+                      aria-label="Patient identity PIN"
+                      className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    />
+                    <button
+                      type="submit"
+                      disabled={registeringIdentity}
+                      className="w-full rounded-2xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {registeringIdentity ? 'Registering…' : 'Register identity'}
+                    </button>
+                    {identityStatus.message ? (
+                      <p className={`text-sm ${identityStatus.type === 'error' ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        {identityStatus.message}
+                      </p>
+                    ) : null}
+                  </form>
+                )}
               </div>
             </div>
           </Card>
