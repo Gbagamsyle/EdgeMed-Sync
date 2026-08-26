@@ -125,6 +125,11 @@ export default function DiagnosisReview() {
       return
     }
 
+    if (!selectedPatient.did) {
+      setError('This patient has no registered DID. Register the patient identity before saving a diagnosis.')
+      return
+    }
+
     if (!form.confirmed) {
       setError('Please confirm that you reviewed the latest vitals.')
       return
@@ -135,7 +140,7 @@ export default function DiagnosisReview() {
     try {
       const normalizedVitals = normalizeVitals(latestVital)
       await diagnosisService.saveDiagnosis({
-        patient_did: selectedPatient.id,
+        patient_did: selectedPatient.did,
         doctor_id: user?.id || profile?.id,
         vitals: normalizedVitals,
         diagnosis_notes: form.diagnosis_notes,

@@ -186,6 +186,7 @@ router.post('/', async (req, res) => {
       .single()
 
     if (insertError) {
+      console.error('[RECORDS] Insert error:', insertError)
       return res.status(500).json({ error: 'Failed to create record' })
     }
 
