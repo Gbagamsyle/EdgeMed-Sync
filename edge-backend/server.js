@@ -21,6 +21,9 @@ import auditRoutes from './routes/audit.js'
 export const app = express()
 const PORT = process.env.PORT || 3001
 
+// Render terminates the public connection and forwards one proxy hop.
+app.set('trust proxy', 1)
+
 // Normalize frontend origin (remove trailing slash if present)
 const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
 
