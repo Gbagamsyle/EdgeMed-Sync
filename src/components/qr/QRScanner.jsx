@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  Activity,
+  Camera,
+  Check,
+  QrCode,
+  Upload,
+  UserRound,
+} from 'lucide-react'
 import { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
 import { lookupPatientByDID, extractDIDFromQR, validateDID, isCameraSupported, requestCameraPermission } from '../../services/qrService'
 import { patientCache } from '../../utils/dexieDb'
@@ -273,7 +281,7 @@ export default function QRScanner() {
             {!scanning && !scannedDID ? (
               <div className="text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100">
-                  <span className="material-symbols-outlined text-3xl text-sky-600">qr_code_2</span>
+                  <QrCode className="h-8 w-8 text-sky-600" />
                 </div>
                 
                 {!cameraSupported || cameraPermission === 'denied' ? (
@@ -305,7 +313,7 @@ export default function QRScanner() {
                   disabled={!cameraSupported || cameraPermission === 'denied'}
                   className="mt-4 w-full"
                 >
-                  <span className="material-symbols-outlined mr-2 text-base">photo_camera</span>
+                  <Camera className="mr-2 h-4 w-4" />
                   Start Camera Scanner
                 </Button>
 
@@ -323,7 +331,7 @@ export default function QRScanner() {
                   disabled={loading}
                   className="mt-3 w-full"
                 >
-                  <span className="material-symbols-outlined mr-2 text-base">upload_file</span>
+                  <Upload className="mr-2 h-4 w-4" />
                   Upload QR Image
                 </Button>
                 <p className="mt-2 text-xs text-slate-500">Choose a QR code image from this computer.</p>
@@ -348,7 +356,7 @@ export default function QRScanner() {
                 <div className="space-y-4">
                   <div className="rounded-lg bg-green-50 p-4">
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl">✓</span>
+                      <Check className="h-6 w-6 text-green-600" />
                       <div className="text-left">
                         <h4 className="font-semibold text-green-900">QR Code Scanned</h4>
                         <p className="mt-1 break-all text-xs text-green-700 font-mono">{scannedDID}</p>
@@ -445,14 +453,14 @@ export default function QRScanner() {
                     onClick={handleViewProfile}
                     className="w-full"
                   >
-                    <span className="material-symbols-outlined mr-2 text-base">person</span>
+                    <UserRound className="mr-2 h-4 w-4" />
                     View Patient Profile
                   </Button>
                   <Button 
                     onClick={handleRecordVital}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
-                    <span className="material-symbols-outlined mr-2 text-base">vitals</span>
+                    <Activity className="mr-2 h-4 w-4" />
                     Record Vital Signs
                   </Button>
                   <Button 

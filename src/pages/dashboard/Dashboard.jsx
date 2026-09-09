@@ -1,4 +1,18 @@
 import { useEffect, useState } from 'react'
+import {
+  Activity,
+  BadgeCheck,
+  CheckCheck,
+  ClipboardList,
+  HelpCircle,
+  History,
+  LayoutDashboard,
+  QrCode,
+  RefreshCw,
+  Stethoscope,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { getPatients } from '../../services/patientService'
 import { BACKEND_URL } from '../../services/config'
@@ -141,10 +155,10 @@ export default function Dashboard() {
   const signedInStaff = profile ? 1 : 0
 
   const stats = [
-    { label: 'Active Patients', value: loadingStats ? '—' : formatCount(totalPatients), icon: 'group' },
-    { label: 'QR-ready Patients', value: loadingStats ? '—' : formatCount(qrReadyPatients), icon: 'qr_code_scanner' },
-    { label: 'New This Week', value: loadingStats ? '—' : formatCount(recentRegistrations), icon: 'bolt' },
-    { label: 'Signed-in Staff', value: loadingStats ? '—' : formatCount(signedInStaff), icon: 'medical_services' },
+    { label: 'Active Patients', value: loadingStats ? '—' : formatCount(totalPatients), icon: Users },
+    { label: 'QR-ready Patients', value: loadingStats ? '—' : formatCount(qrReadyPatients), icon: QrCode },
+    { label: 'New This Week', value: loadingStats ? '—' : formatCount(recentRegistrations), icon: BadgeCheck },
+    { label: 'Signed-in Staff', value: loadingStats ? '—' : formatCount(signedInStaff), icon: ClipboardList },
   ]
 
   const healthMetrics = [
@@ -156,14 +170,14 @@ export default function Dashboard() {
 
   const actionCards = isAdmin
     ? [
-        { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: 'people' },
-        { title: 'System Reports', description: 'Monitor performance and audit trends.', href: '/dashboard/reports', icon: 'analytics' },
-        { title: 'Platform Settings', description: 'Adjust system preferences and security options.', href: '/dashboard/settings', icon: 'settings' },
+        { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: Users },
+        { title: 'System Reports', description: 'Monitor performance and audit trends.', href: '/dashboard/reports', icon: Activity },
+        { title: 'Platform Settings', description: 'Adjust system preferences and security options.', href: '/dashboard/settings', icon: LayoutDashboard },
       ]
     : [
-        { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: 'people' },
-        { title: 'Diagnosis', description: 'Create and manage patient diagnoses.', href: '/dashboard/diagnosis', icon: 'health_and_safety' },
-        { title: 'QR Scanner', description: 'Quickly access patient information.', href: '/dashboard/qr/scan', icon: 'qr_code_2' },
+        { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: Users },
+        { title: 'Diagnosis', description: 'Create and manage patient diagnoses.', href: '/dashboard/diagnosis', icon: Stethoscope },
+        { title: 'QR Scanner', description: 'Quickly access patient information.', href: '/dashboard/qr/scan', icon: QrCode },
       ]
 
   const activityItems = auditActivity
@@ -175,7 +189,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-50 px-3 py-1">
-                <span className="material-symbols-outlined text-xs text-slate-500">badge</span>
+                <BadgeCheck className="h-3.5 w-3.5 text-slate-500" />
                 <span className="text-xs font-semibold text-slate-700">{profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : 'User'}</span>
               </div>
             </div>
@@ -186,11 +200,11 @@ export default function Dashboard() {
 
             <div className="grid gap-3 sm:grid-cols-2 pt-2">
               <button type="button" onClick={loadMetrics} aria-label="Refresh dashboard" className="group flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50">
-                <span className="material-symbols-outlined text-base transition group-hover:rotate-180">refresh</span>
+                <RefreshCw className="h-4 w-4 transition group-hover:rotate-180" />
                 <span>Refresh</span>
               </button>
               <a href="/dashboard/patients" className="group flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-600 px-6 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl hover:from-sky-700 hover:to-cyan-700">
-                <span className="material-symbols-outlined text-base">people</span>
+                <Users className="h-4 w-4" />
                 <span>Manage Patients</span>
               </a>
             </div>
@@ -203,14 +217,14 @@ export default function Dashboard() {
                   <h2 className="mt-2 text-xl font-bold text-slate-900">{isAdmin ? 'System Oversight' : 'Patient Intake Review'}</h2>
                 </div>
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <span className="material-symbols-outlined text-base text-sky-600">checklist</span>
+                  <ClipboardList className="h-5 w-5 text-sky-600" />
                 </span>
               </div>
             <p className="text-sm leading-6 text-slate-600">{isAdmin ? 'Review system alerts, audit logs, and platform health to keep operations running smoothly.' : 'Review latest registrations, activate QR codes, and process any pending alerts before shift change.'}</p>
             <div className="mt-5 space-y-3">
               <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-xs">
                 <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                  <span className="material-symbols-outlined text-sm text-emerald-600">person_add</span>
+                  <UserPlus className="h-4 w-4 text-emerald-600" />
                 </span>
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-slate-600">New registrations</p>
@@ -219,7 +233,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-xs">
                 <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                  <span className="material-symbols-outlined text-sm text-blue-600">qr_code_scanner</span>
+                  <QrCode className="h-4 w-4 text-blue-600" />
                 </span>
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-slate-600">QR-ready patients</p>
@@ -247,8 +261,8 @@ export default function Dashboard() {
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between gap-4">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{item.label}</span>
-                  <div className={`${colors.bg} inline-flex flex-shrink-0 h-10 w-10 items-center justify-center rounded-lg`}>
-                    <span className={`material-symbols-outlined ${colors.text} text-lg`}>{item.icon}</span>
+                  <div className={`${colors.bg} inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg`}>
+                    <item.icon className={`h-5 w-5 ${colors.text}`} />
                   </div>
                 </div>
                 <div className="mb-1 text-3xl font-bold tracking-tight text-slate-900">{item.value}</div>
@@ -266,7 +280,7 @@ export default function Dashboard() {
               <p className="mt-1 text-sm text-slate-500">Latest actions in the system</p>
             </div>
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-              <span className="material-symbols-outlined text-slate-600">history</span>
+              <History className="h-5 w-5 text-slate-600" />
             </span>
           </div>
           <ul className="mt-6 space-y-3">
@@ -280,7 +294,7 @@ export default function Dashboard() {
                   <li key={entry.id || `${entry.event_type}-${entry.created_at}`} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-slate-100 text-slate-600">
-                        <span className="material-symbols-outlined text-base">task_alt</span>
+                        <CheckCheck className="h-4 w-4 text-slate-600" />
                       </span>
                       <span className="font-medium text-slate-900">{label}</span>
                     </div>
@@ -304,7 +318,7 @@ export default function Dashboard() {
               <p className="mt-1 text-sm text-slate-500">Platform metrics based on live data</p>
             </div>
             <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
-              <span className="material-symbols-outlined text-slate-600">dashboard</span>
+              <LayoutDashboard className="h-5 w-5 text-slate-600" />
             </span>
           </div>
           <div className="mt-6 space-y-3">
@@ -326,8 +340,8 @@ export default function Dashboard() {
           if (card.title === 'QR Scanner') {
             return (
               <a key={card.title} href="/dashboard/qr/scan" className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 mb-4">
-                  <span className="material-symbols-outlined text-xl text-slate-600">{card.icon}</span>
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50">
+                  <card.icon className="h-5 w-5 text-slate-600" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
                 <p className="mt-2 text-sm text-slate-600">{card.description}</p>
@@ -337,8 +351,8 @@ export default function Dashboard() {
 
           return (
             <a key={card.title} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md hover:border-slate-300">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 mb-4">
-                <span className="material-symbols-outlined text-xl text-slate-600">{card.icon}</span>
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50">
+                <card.icon className="h-5 w-5 text-slate-600" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
               <p className="mt-2 text-sm text-slate-600">{card.description}</p>
@@ -354,7 +368,7 @@ export default function Dashboard() {
             <p className="mt-1 text-sm text-slate-600">Check documentation or contact support</p>
           </div>
           <button className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-            <span className="material-symbols-outlined text-base">help</span>
+            <HelpCircle className="h-4 w-4" />
             View Docs
           </button>
         </div>

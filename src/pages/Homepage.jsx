@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Heart } from 'lucide-react'
 import doctorImg from '../assets/Doctor.jpg'
 
 export default function Homepage() {
@@ -70,7 +71,7 @@ export default function Homepage() {
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row md:items-start">
             <div className="text-center md:text-left">
               <div className="mb-2 flex items-center justify-center gap-3 md:justify-start">
-                <span className="material-symbols-outlined text-3xl">favorite</span>
+                <Heart className="h-8 w-8" />
                 <h3 className="text-2xl font-extrabold">Edge-Health</h3>
               </div>
               <p className="text-sm text-white/80">Edge-Health is a trademark of Edge-Health Healthcare Digital Services inc.</p>

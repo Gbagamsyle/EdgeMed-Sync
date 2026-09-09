@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { HeartPulse, Search, X } from 'lucide-react'
 import { getPatientById } from '../../services/patientService'
 import { useAuth } from '../../context/AuthContext'
 import { getPatients } from '../../services/patientService'
@@ -230,8 +231,8 @@ export default function Vitals() {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 mb-1">
         <div className="flex items-start gap-3">
-          <div className="rounded-md bg-white/30 p-3 shadow-sm hidden sm:block">
-            <span className="material-symbols-outlined text-sky-600">monitor_heart</span>
+          <div className="hidden rounded-md bg-white/30 p-3 shadow-sm sm:block">
+            <HeartPulse className="h-5 w-5 text-sky-600" />
           </div>
           <div>
             <h2 className="text-2xl font-semibold text-slate-900">Vitals Intake</h2>
@@ -252,7 +253,7 @@ export default function Vitals() {
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Search patient</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined pointer-events-none">search</span>
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
                       type="text"
                       placeholder="Name, phone, or NIN"
@@ -267,7 +268,7 @@ export default function Vitals() {
                         aria-label="Clear search"
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
                       >
-                        <span className="material-symbols-outlined">close</span>
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>

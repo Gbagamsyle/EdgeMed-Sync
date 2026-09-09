@@ -1,35 +1,45 @@
 import { NavLink } from 'react-router-dom'
+import {
+  BarChart3,
+  HeartPulse,
+  LayoutDashboard,
+  QrCode,
+  Settings,
+  Stethoscope,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import logo from '../../assets/logo.png'
 
 const commonItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { to: '/dashboard/qr/scan', label: 'QR Scan', icon: 'qr_code_scanner' },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/dashboard/qr/scan', label: 'QR Scan', icon: QrCode },
 ]
 
 const roleItems = {
   admin: [
-    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
-    { to: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
-    { to: '/dashboard/settings', label: 'Settings', icon: 'settings' },
+    { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
+    { to: '/dashboard/settings', label: 'Settings', icon: Settings },
   ],
   doctor: [
-    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
-    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: 'medical_information' },
-    { to: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
+    { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: Stethoscope },
+    { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   ],
   clinician: [
-    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
-    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: 'medical_information' },
-    { to: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
+    { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: Stethoscope },
+    { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   ],
   receptionist: [
-    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
-    { to: '/dashboard/patients/add', label: 'Add Patient', icon: 'person_add' },
+    { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/patients/add', label: 'Add Patient', icon: UserPlus },
   ],
   nurse: [
-    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
-    { to: '/dashboard/vitals', label: 'Vitals', icon: 'monitor_heart' },
+    { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/vitals', label: 'Vitals', icon: HeartPulse },
   ],
 }
 
@@ -68,7 +78,7 @@ export default function Sidebar() {
                 }`
               }
             >
-              <span className="material-symbols-outlined text-base">{item.icon}</span>
+              <item.icon className="h-4 w-4" />
               {item.label}
             </NavLink>
           ))}
