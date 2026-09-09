@@ -18,6 +18,11 @@ const roleItems = {
     { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: 'medical_information' },
     { to: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
   ],
+  clinician: [
+    { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
+    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: 'medical_information' },
+    { to: '/dashboard/reports', label: 'Reports', icon: 'analytics' },
+  ],
   receptionist: [
     { to: '/dashboard/patients', label: 'Patients', icon: 'groups' },
     { to: '/dashboard/patients/add', label: 'Add Patient', icon: 'person_add' },

@@ -120,6 +120,7 @@ export default function Register() {
                 <select id="role" name="role" value={form.role} onChange={handleChange} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
                   <option value="receptionist">🧑‍💼 Receptionist</option>
                   <option value="nurse">🩺 Nurse</option>
+                  <option value="clinician">🩺 Clinician</option>
                   <option value="doctor">🩺 Doctor</option>
                   <option value="admin">🛡️ Admin</option>
                 </select>

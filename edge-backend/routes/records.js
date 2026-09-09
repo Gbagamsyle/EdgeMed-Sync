@@ -5,7 +5,7 @@ import { sha256Hash } from '../services/hashing.js'
 import { signRecord, fallbackSignRecord, verifySignature } from '../services/dilithiumSigning.js'
 import { verifyAgainstFogBatch } from '../services/merkle.js'
 import axios from 'axios'
-import { requireStaff } from '../middleware/auth.js'
+import { requireClinicalStaff, requireStaff } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -115,7 +115,7 @@ router.post('/create', async (req, res) => {
  * POST /api/records
  * Create a new medical record: runs AI prediction, hashes, queues for sync
  */
-router.post('/', async (req, res) => {
+router.post('/', requireClinicalStaff, async (req, res) => {
   try {
     const supabase = getSupabase()
     if (!supabase) {

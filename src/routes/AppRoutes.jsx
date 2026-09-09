@@ -34,9 +34,9 @@ function AppRoutes() {
           <Route path="patients/:id" element={<PatientProfile />} />
           <Route path="patients/:id/edit" element={<EditPatient />} />
           <Route path="patients/:id/records" element={<PatientRecords />} />
-          <Route path="diagnosis" element={<Diagnosis />} />
-          <Route path="diagnosis/:patientId" element={<DiagnosisReview />} />
-          <Route path="diagnosis/:patientId/predict" element={<DiagnosisPrediction />} />
+          <Route path="diagnosis" element={<ProtectedRoute allowedRoles={['doctor', 'clinician']}><Diagnosis /></ProtectedRoute>} />
+          <Route path="diagnosis/:patientId" element={<ProtectedRoute allowedRoles={['doctor', 'clinician']}><DiagnosisReview /></ProtectedRoute>} />
+          <Route path="diagnosis/:patientId/predict" element={<ProtectedRoute allowedRoles={['doctor', 'clinician']}><DiagnosisPrediction /></ProtectedRoute>} />
           <Route path="vitals" element={<Vitals />} />
           <Route path="qr/scan" element={<ScanQR />} />
           <Route path="reports" element={<Reports />} />
