@@ -53,7 +53,20 @@ export const diagnosisService = {
     return payload
   },
 
-  saveDiagnosis: async ({ patient_did, doctor_id, vitals, diagnosis_notes, recorded_by }) => {
+  saveDiagnosis: async ({
+    patient_did,
+    doctor_id,
+    vitals,
+    diagnosis_notes,
+    recorded_by,
+    final_diagnosis,
+    confidence_score,
+    treatment_plan,
+    prescription,
+    referral,
+    patient_consent,
+    doctor_override,
+  }) => {
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
 
@@ -69,6 +82,13 @@ export const diagnosisService = {
         vitals,
         diagnosis_notes,
         recorded_by,
+        final_diagnosis,
+        confidence_score,
+        treatment_plan,
+        prescription,
+        referral,
+        patient_consent,
+        doctor_override,
       }),
     })
 

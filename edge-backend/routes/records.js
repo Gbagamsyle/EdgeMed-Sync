@@ -127,11 +127,26 @@ router.post('/', async (req, res) => {
       doctor_id,
       vitals,
       diagnosis_notes,
-      recorded_by
+      recorded_by,
+      final_diagnosis,
+      confidence_score,
+      treatment_plan,
+      prescription,
+      referral,
+      patient_consent,
+      doctor_override
     } = req.body
 
     if (!patient_did || !vitals) {
       return res.status(400).json({ error: 'patient_did and vitals required' })
+    }
+
+    if (!final_diagnosis || !String(final_diagnosis).trim()) {
+      return res.status(400).json({ error: 'final_diagnosis required' })
+    }
+
+    if (patient_consent !== true && patient_consent !== 'true') {
+      return res.status(400).json({ error: 'Patient consent required before record submission' })
     }
 
     const recordId = uuidv4()
@@ -158,6 +173,13 @@ router.post('/', async (req, res) => {
       vitals,
       ai_prediction: aiPrediction,
       diagnosis_notes,
+      final_diagnosis: String(final_diagnosis).trim(),
+      confidence_score: Number(confidence_score ?? 0),
+      treatment_plan: treatment_plan ? String(treatment_plan).trim() : null,
+      prescription: prescription ? String(prescription).trim() : null,
+      referral: referral ? String(referral).trim() : null,
+      patient_consent: patient_consent === true || patient_consent === 'true',
+      doctor_override: doctor_override === true || doctor_override === 'true',
       recorded_by,
       created_at: new Date().toISOString()
     }
@@ -176,6 +198,13 @@ router.post('/', async (req, res) => {
           vitals,
           ai_prediction: aiPrediction,
           diagnosis_notes,
+          final_diagnosis: String(final_diagnosis).trim(),
+          confidence_score: Number(confidence_score ?? 0),
+          treatment_plan: treatment_plan ? String(treatment_plan).trim() : null,
+          prescription: prescription ? String(prescription).trim() : null,
+          referral: referral ? String(referral).trim() : null,
+          patient_consent: patient_consent === true || patient_consent === 'true',
+          doctor_override: doctor_override === true || doctor_override === 'true',
           recorded_by,
           sha256_hash: recordHash,
           synced: false,

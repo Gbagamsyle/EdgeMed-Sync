@@ -9,6 +9,13 @@ import { getPatientVitals } from '../../services/vitalsService'
 
 const initialForm = {
   diagnosis_notes: '',
+  final_diagnosis: '',
+  confidence_score: '0.8',
+  treatment_plan: '',
+  prescription: '',
+  referral: '',
+  patient_consent: false,
+  doctor_override: false,
   confirmed: false,
 }
 
@@ -135,6 +142,16 @@ export default function DiagnosisReview() {
       return
     }
 
+    if (!form.final_diagnosis.trim()) {
+      setError('Please enter a final diagnosis before saving.')
+      return
+    }
+
+    if (!form.patient_consent) {
+      setError('Please confirm that the patient consented to the clinical review.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -145,6 +162,13 @@ export default function DiagnosisReview() {
         vitals: normalizedVitals,
         diagnosis_notes: form.diagnosis_notes,
         recorded_by: user?.id || profile?.id,
+        final_diagnosis: form.final_diagnosis.trim(),
+        confidence_score: Number(form.confidence_score) || 0,
+        treatment_plan: form.treatment_plan.trim(),
+        prescription: form.prescription.trim(),
+        referral: form.referral.trim(),
+        patient_consent: form.patient_consent,
+        doctor_override: form.doctor_override,
       })
     } catch (err) {
       setError(err.message || 'Unable to save diagnosis record.')
@@ -260,6 +284,66 @@ export default function DiagnosisReview() {
                 </label>
 
                 <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Final diagnosis</span>
+                  <input
+                    name="final_diagnosis"
+                    value={form.final_diagnosis}
+                    onChange={handleChange}
+                    placeholder="e.g. Malaria, Dehydration, Pneumonia"
+                    className="w-full rounded-[1.75rem] border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Confidence score</span>
+                  <input
+                    name="confidence_score"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={form.confidence_score}
+                    onChange={handleChange}
+                    className="w-full rounded-[1.75rem] border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Treatment plan</span>
+                  <input
+                    name="treatment_plan"
+                    value={form.treatment_plan}
+                    onChange={handleChange}
+                    placeholder="e.g. Oral rehydration and antimalarial therapy"
+                    className="w-full rounded-[1.75rem] border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Prescription</span>
+                  <textarea
+                    name="prescription"
+                    value={form.prescription}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Medication name, dose, route, and duration"
+                    className="w-full rounded-[1.75rem] border border-slate-300 px-4 py-4 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Referral / specialist handoff</span>
+                  <textarea
+                    name="referral"
+                    value={form.referral}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Referral note or specialist escalation"
+                    className="w-full rounded-[1.75rem] border border-slate-300 px-4 py-4 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="block space-y-2">
                   <span className="text-sm font-medium text-slate-700">Diagnosis notes</span>
                   <textarea
                     name="diagnosis_notes"
@@ -270,6 +354,30 @@ export default function DiagnosisReview() {
                     className="w-full rounded-[1.75rem] border border-slate-300 px-4 py-4 text-sm text-slate-900 outline-none transition duration-150 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   />
                 </label>
+
+                <div className="space-y-3 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      name="patient_consent"
+                      checked={form.patient_consent}
+                      onChange={handleChange}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    />
+                    <span>The patient consented to this clinical review and treatment plan.</span>
+                  </label>
+
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      name="doctor_override"
+                      checked={form.doctor_override}
+                      onChange={handleChange}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    />
+                    <span>I am overriding or confirming the AI recommendation as the treating doctor.</span>
+                  </label>
+                </div>
 
                 {error ? (
                   <div className="rounded-[1.75rem] border border-red-200 bg-red-50 p-4 text-sm text-red-700">

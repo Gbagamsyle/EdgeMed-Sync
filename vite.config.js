@@ -8,5 +8,11 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.js',
     exclude: ['edge-backend/**', 'node_modules/**'],
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 })
