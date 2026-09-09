@@ -4,6 +4,7 @@ import { getPatients } from '../../services/patientService'
 import { BACKEND_URL } from '../../services/config'
 import { diagnosisService } from '../../services/diagnosisService'
 import { supabase } from '../../services/supabaseClient'
+import { recordQueue } from '../../utils/dexieDb'
 
 const formatCount = (value) => new Intl.NumberFormat().format(value)
 const formatPercent = (value) => `${Math.round(value)}%`
@@ -27,6 +28,14 @@ export default function Dashboard() {
   const { profile } = useAuth()
   const [patients, setPatients] = useState([])
   const [auditActivity, setAuditActivity] = useState([])
+  const [queueStats, setQueueStats] = useState({ total: 0, pending: 0, failed: 0, synced: 0 })
+  const [deviceHealth, setDeviceHealth] = useState({
+    status: navigator.onLine ? 'online' : 'offline',
+    pendingSync: 0,
+    storagePercent: 0,
+    storageLabel: 'Unavailable',
+    connection: navigator.connection?.effectiveType || 'Unknown',
+  })
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingHealth, setLoadingHealth] = useState(true)
   const [aiHealth, setAiHealth] = useState({ status: 'unknown', error: null })
@@ -72,6 +81,41 @@ export default function Dashboard() {
       setAiHealth({ status: 'offline', error: err.message })
     }
 
+    try {
+      const stats = await recordQueue.getStats()
+      setQueueStats(stats)
+      const pendingUploads = (stats.pending || 0) + (stats.failed || 0)
+
+      let storagePercent = 0
+      let storageLabel = 'Unavailable'
+
+      if (navigator.storage && typeof navigator.storage.estimate === 'function') {
+        const estimate = await navigator.storage.estimate()
+        if (estimate?.quota) {
+          storagePercent = Math.min(100, ((estimate.usage || 0) / estimate.quota) * 100)
+          storageLabel = `${(estimate.usage / 1024 / 1024).toFixed(1)} MB / ${(estimate.quota / 1024 / 1024).toFixed(1)} MB`
+        }
+      }
+
+      setDeviceHealth({
+        status: navigator.onLine ? 'online' : 'offline',
+        pendingSync: pendingUploads,
+        storagePercent,
+        storageLabel,
+        connection: navigator.connection?.effectiveType || 'Unknown',
+      })
+    } catch (err) {
+      console.warn('Dashboard queue/device health unavailable:', err)
+      setQueueStats({ total: 0, pending: 0, failed: 0, synced: 0 })
+      setDeviceHealth({
+        status: navigator.onLine ? 'online' : 'offline',
+        pendingSync: 0,
+        storagePercent: 0,
+        storageLabel: 'Unavailable',
+        connection: navigator.connection?.effectiveType || 'Unknown',
+      })
+    }
+
     setLoadingStats(false)
     setLoadingHealth(false)
   }
@@ -114,9 +158,9 @@ export default function Dashboard() {
 
   const healthMetrics = [
     { label: 'AI service', value: aiHealth.status === 'online' ? 'Online' : 'Offline', description: aiHealth.status === 'online' ? 'AI inference reachable' : aiHealth.error || 'Service unavailable' },
-    { label: 'Records added today', value: loadingStats ? '—' : formatCount(recordsToday), description: 'New patient records since midnight' },
-    { label: 'QR coverage', value: loadingStats ? '—' : formatPercent(qrCoverage), description: 'Patients with active QR codes' },
-    { label: 'Recent audit events', value: loadingHealth ? '—' : formatCount(auditActivity.length), description: 'Latest system actions' },
+    { label: 'Device status', value: deviceHealth.status === 'online' ? 'Online' : 'Offline', description: `${deviceHealth.connection} network · ${deviceHealth.pendingSync} pending sync tasks` },
+    { label: 'Offline queue', value: loadingHealth ? '—' : formatCount(queueStats.pending + queueStats.failed), description: 'Pending uploads waiting for network recovery' },
+    { label: 'Storage used', value: loadingHealth ? '—' : `${Math.round(deviceHealth.storagePercent)}%`, description: deviceHealth.storageLabel },
   ]
 
   const actionCards = isAdmin
@@ -221,6 +265,60 @@ export default function Dashboard() {
             </article>
           )
         })}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+        <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.18)]">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-500">System health</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Edge device status</h2>
+            </div>
+            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${deviceHealth.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+              <span className={`h-2.5 w-2.5 rounded-full ${deviceHealth.status === 'online' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              {deviceHealth.status === 'online' ? 'Connected' : 'Offline'}
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Network</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{deviceHealth.connection}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Queue</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{deviceHealth.pendingSync}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Storage</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{Math.round(deviceHealth.storagePercent)}%</p>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+              <span>storage usage</span>
+              <span>{deviceHealth.storageLabel}</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className={`h-full rounded-full ${deviceHealth.storagePercent > 75 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                style={{ width: `${Math.min(100, Math.max(6, deviceHealth.storagePercent))}%` }}
+              />
+            </div>
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-sky-900 p-6 text-white shadow-[0_20px_50px_-24px_rgba(14,116,144,0.6)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-200">Admin guardrails</p>
+          <h2 className="mt-2 text-xl font-semibold">Operations summary</h2>
+          <ul className="mt-6 space-y-4 text-sm text-slate-100">
+            <li className="flex items-start gap-3"><span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-400" /> Queue status: {queueStats.pending + queueStats.failed} records need sync</li>
+            <li className="flex items-start gap-3"><span className="mt-1 h-2.5 w-2.5 rounded-full bg-cyan-400" /> AI reachability: {aiHealth.status === 'online' ? 'Operational' : 'Requires attention'}</li>
+            <li className="flex items-start gap-3"><span className="mt-1 h-2.5 w-2.5 rounded-full bg-violet-400" /> Records synced: {queueStats.synced}</li>
+            <li className="flex items-start gap-3"><span className="mt-1 h-2.5 w-2.5 rounded-full bg-amber-400" /> Storage threshold: {deviceHealth.storagePercent > 75 ? 'Critical' : 'Healthy'}</li>
+          </ul>
+        </article>
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
