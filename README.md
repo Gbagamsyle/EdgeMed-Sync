@@ -40,6 +40,16 @@ Edge-Health Sync is a patient-record and care coordination platform with a React
    npm run dev
    ```
 
+## Supabase clinic RBAC setup
+
+Apply the migrations in `supabase/migrations`, especially `20260913000000_create_clinic_rbac_profiles.sql`, before registering users. It creates the `public.users` profile used by RBAC and installs the Auth signup trigger. If the migration is not applied, Supabase Auth can return `500 - Database error saving new user` while creating an account.
+
+With the Supabase CLI installed and linked to the project, run:
+
+```bash
+supabase db push
+```
+
 ## AI service setup
 
 1. Change into the AI service directory:
