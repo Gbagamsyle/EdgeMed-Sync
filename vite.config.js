@@ -9,10 +9,6 @@ export default defineConfig({
     setupFiles: './src/test/setup.js',
     exclude: ['edge-backend/**', 'node_modules/**'],
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    singleThread: true,
   },
 })

@@ -17,6 +17,8 @@ import ScanQR from '../pages/qr/ScanQR'
 import Vitals from '../pages/vitals/Vitals'
 import Reports from '../pages/reports/Reports'
 import Settings from '../pages/settings/Settings'
+import LabQueue from '../pages/laboratory/LabQueue'
+import LabResultEntry from '../pages/laboratory/LabResultEntry'
 
 function AppRoutes() {
   return (
@@ -34,9 +36,11 @@ function AppRoutes() {
           <Route path="patients/:id" element={<PatientProfile />} />
           <Route path="patients/:id/edit" element={<EditPatient />} />
           <Route path="patients/:id/records" element={<PatientRecords />} />
-          <Route path="diagnosis" element={<ProtectedRoute allowedRoles={['doctor', 'clinician']}><Diagnosis /></ProtectedRoute>} />
-          <Route path="diagnosis/:patientId" element={<ProtectedRoute allowedRoles={['doctor', 'clinician']}><DiagnosisReview /></ProtectedRoute>} />
-          <Route path="diagnosis/:patientId/predict" element={<ProtectedRoute allowedRoles={['doctor', 'clinician']}><DiagnosisPrediction /></ProtectedRoute>} />
+          <Route path="diagnosis" element={<ProtectedRoute allowedRoles={['doctor']}><Diagnosis /></ProtectedRoute>} />
+          <Route path="diagnosis/:patientId" element={<ProtectedRoute allowedRoles={['doctor']}><DiagnosisReview /></ProtectedRoute>} />
+          <Route path="diagnosis/:patientId/predict" element={<ProtectedRoute allowedRoles={['doctor']}><DiagnosisPrediction /></ProtectedRoute>} />
+          <Route path="laboratory" element={<ProtectedRoute allowedRoles={['lab_technician']}><LabQueue /></ProtectedRoute>} />
+          <Route path="laboratory/:requestId" element={<ProtectedRoute allowedRoles={['lab_technician']}><LabResultEntry /></ProtectedRoute>} />
           <Route path="vitals" element={<Vitals />} />
           <Route path="qr/scan" element={<ScanQR />} />
           <Route path="reports" element={<Reports />} />

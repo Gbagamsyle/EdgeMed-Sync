@@ -35,7 +35,7 @@ begin
     new.id,
     nullif(trim(coalesce(new.raw_user_meta_data ->> 'full_name', '')), ''),
     case
-      when (new.raw_user_meta_data ->> 'role') in ('receptionist', 'nurse', 'clinician', 'doctor')
+      when (new.raw_user_meta_data ->> 'role') in ('receptionist', 'nurse', 'lab_technician', 'doctor')
         then new.raw_user_meta_data ->> 'role'
       else 'receptionist'
     end,

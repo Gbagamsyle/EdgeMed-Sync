@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   BarChart3,
   HeartPulse,
+  FlaskConical,
   LayoutDashboard,
   QrCode,
   Settings,
@@ -28,9 +29,8 @@ const roleItems = {
     { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: Stethoscope },
     { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   ],
-  clinician: [
-    { to: '/dashboard/patients', label: 'Patients', icon: Users },
-    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: Stethoscope },
+  lab_technician: [
+    { to: '/dashboard/laboratory', label: 'Laboratory', icon: FlaskConical },
     { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   ],
   receptionist: [

@@ -53,8 +53,8 @@ export default function AddPatient() {
       full_name: joinedName,
     }
 
-    if (form.nin && form.nin.length > 10) {
-      setStatus({ type: 'error', message: 'NIN must be at most 10 digits long.' })
+    if (form.nin && !/^\d{11}$/.test(form.nin)) {
+      setStatus({ type: 'error', message: 'NIN must be exactly 11 digits long.' })
       return
     }
 
@@ -176,12 +176,12 @@ export default function AddPatient() {
                 name="nin"
                 value={form.nin}
                 onChange={(e) => {
-                  const numericValue = e.target.value.replace(/\D/g, '').slice(0, 10)
+                  const numericValue = e.target.value.replace(/\D/g, '').slice(0, 11)
                   setForm({ ...form, nin: numericValue })
                 }}
-                placeholder="1234567890"
+                placeholder="12345678901"
                 inputMode="numeric"
-                maxLength={10}
+                maxLength={11}
               />
             </label>
             <label className="space-y-2">

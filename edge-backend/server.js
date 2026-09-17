@@ -17,6 +17,7 @@ import merkleRoutes from './routes/merkle.js'
 import blockchainRoutes from './routes/blockchain.js'
 import syncRoutes from './routes/sync.js'
 import auditRoutes from './routes/audit.js'
+import labRoutes from './routes/lab.js'
 
 export const app = express()
 const PORT = process.env.PORT || 3001
@@ -77,6 +78,7 @@ app.use('/api/merkle', merkleRoutes)
 app.use('/api/blockchain', blockchainRoutes)
 app.use('/api/sync', syncRoutes)
 app.use('/api/audit', auditRoutes)
+app.use('/api/lab', labRoutes)
 
 // Error handling middleware
 app.use((err, req, res) => {

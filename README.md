@@ -20,6 +20,7 @@ Edge-Health Sync is a patient-record and care coordination platform with a React
    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    VITE_BACKEND_URL=http://localhost:3001
    ```
+   The backend also needs `SUPABASE_SERVICE_ROLE_KEY`; keep it in `edge-backend/.env` only and never expose it to the frontend.
 3. Start the dev server:
    ```bash
    npm run dev
@@ -42,7 +43,7 @@ Edge-Health Sync is a patient-record and care coordination platform with a React
 
 ## Supabase clinic RBAC setup
 
-Apply the migrations in `supabase/migrations`, especially `20260913000000_create_clinic_rbac_profiles.sql`, before registering users. It creates the `public.users` profile used by RBAC and installs the Auth signup trigger. If the migration is not applied, Supabase Auth can return `500 - Database error saving new user` while creating an account.
+Apply the migrations in `supabase/migrations`, especially `20260913000000_create_clinic_rbac_profiles.sql` and `20260917000000_create_lab_results.sql`, before registering users or recording lab results. They create the `public.users` and `public.lab_results` tables used by RBAC and lab workflows and install the Auth signup trigger. If the RBAC migration is not applied, Supabase Auth can return `500 - Database error saving new user` while creating an account.
 
 With the Supabase CLI installed and linked to the project, run:
 

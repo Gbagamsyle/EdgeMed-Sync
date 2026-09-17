@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { getPatientVitals } from '../../services/vitalsService'
+import { getPatientLabResults } from '../../services/labService'
 
 export default function PatientRecords() {
   const { id } = useParams()
+  const { profile } = useAuth()
   const [vitals, setVitals] = useState([])
+  const [labResults, setLabResults] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -31,6 +35,15 @@ export default function PatientRecords() {
         setVitals(data || [])
       }
 
+      if (profile?.role === 'doctor') {
+        try {
+          const payload = await getPatientLabResults(id)
+          setLabResults(payload.results || [])
+        } catch (labError) {
+          setError(labError.message || 'Unable to load laboratory results.')
+        }
+      }
+
       setLoading(false)
     }
 
@@ -39,7 +52,7 @@ export default function PatientRecords() {
     return () => {
       isMounted = false
     }
-  }, [id])
+  }, [id, profile?.role])
 
   const formatDate = (value) => {
     if (!value) return '—'
@@ -99,6 +112,28 @@ export default function PatientRecords() {
           </table>
         </div>
       )}
+
+      {profile?.role === 'doctor' ? (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-bold text-slate-900">Laboratory results</h2>
+          {labResults.length === 0 ? <p className="text-sm text-slate-600">No completed laboratory results are attached to this patient.</p> : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {labResults.map((result) => (
+                <article key={result.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><h3 className="font-semibold text-slate-900">{result.test_name}</h3><p className="text-xs text-slate-500">{new Date(result.created_at).toLocaleString()}</p></div>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold uppercase text-slate-700">{result.status}</span>
+                  </div>
+                  <p className="mt-4 text-lg font-semibold text-slate-900">{result.result_value} {result.unit || ''}</p>
+                  {result.reference_range ? <p className="mt-1 text-sm text-slate-500">Reference: {result.reference_range}</p> : null}
+                  {result.notes ? <p className="mt-3 text-sm text-slate-600">{result.notes}</p> : null}
+                  <p className="mt-4 text-xs text-slate-500">Performed by {result.technician?.full_name || 'laboratory technician'}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
     </div>
   )
 }

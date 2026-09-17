@@ -53,6 +53,17 @@ export const diagnosisService = {
     return payload
   },
 
+  getPatientHistory: async (patientDid) => {
+    const response = await fetch(`${API_BASE}/records/patient/${encodeURIComponent(patientDid)}`)
+    const payload = await response.json()
+
+    if (!response.ok) {
+      throw new Error(payload.error || 'Unable to load diagnosis history')
+    }
+
+    return Array.isArray(payload) ? payload : payload.records || []
+  },
+
   saveDiagnosis: async ({
     patient_did,
     doctor_id,
