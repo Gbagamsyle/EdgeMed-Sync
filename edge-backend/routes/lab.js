@@ -72,6 +72,24 @@ router.get('/requests/queue', requireRole('lab_technician'), async (req, res) =>
   return res.json({ requests: enriched })
 })
 
+router.get('/results', requireRole('lab_technician'), async (req, res) => {
+  const supabase = getSupabase()
+  const { data: results, error } = await supabase
+    .from('lab_results')
+    .select('*')
+    .eq('recorded_by', getUserId(req))
+    .order('created_at', { ascending: false })
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  const enriched = await Promise.all((results || []).map(async (result) => {
+    const { data: patient } = await supabase.from('patients').select('full_name').eq('id', result.patient_id).maybeSingle()
+    return { ...result, patient }
+  }))
+
+  return res.json({ results: enriched })
+})
+
 router.get('/requests/:requestId', requireRole('lab_technician'), async (req, res) => {
   const supabase = getSupabase()
   const { request, error } = await getRequestWithPatient(supabase, req.params.requestId)

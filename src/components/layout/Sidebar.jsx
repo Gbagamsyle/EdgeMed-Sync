@@ -1,10 +1,15 @@
 import { NavLink } from 'react-router-dom'
 import {
+  Activity,
   BarChart3,
+  CalendarDays,
+  ClipboardList,
   HeartPulse,
+  History,
   FlaskConical,
   LayoutDashboard,
   QrCode,
+  UserCog,
   Settings,
   Stethoscope,
   UserPlus,
@@ -21,33 +26,84 @@ const commonItems = [
 const roleItems = {
   admin: [
     { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/staff', label: 'Staff', icon: UserCog },
     { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
     { to: '/dashboard/settings', label: 'Settings', icon: Settings },
   ],
-  doctor: [
-    { to: '/dashboard/patients', label: 'Patients', icon: Users },
-    { to: '/dashboard/diagnosis', label: 'Diagnosis', icon: Stethoscope },
-    { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
-  ],
+  doctor: [],
   lab_technician: [
+    { to: '/dashboard/patients', label: 'Patients', icon: Users },
+    { to: '/dashboard/laboratory/samples', label: 'Test Samples', icon: FlaskConical },
     { to: '/dashboard/laboratory', label: 'Laboratory', icon: FlaskConical },
-    { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
+    { to: '/dashboard/laboratory/results', label: 'Test Results', icon: ClipboardList },
+    { to: '/dashboard/reports', label: 'Activity', icon: BarChart3 },
   ],
   receptionist: [
     { to: '/dashboard/patients', label: 'Patients', icon: Users },
     { to: '/dashboard/patients/add', label: 'Add Patient', icon: UserPlus },
+    { to: '/dashboard/appointments', label: 'Appointments', icon: CalendarDays },
+    { to: '/dashboard/reports', label: 'Activity', icon: BarChart3 },
   ],
   nurse: [
     { to: '/dashboard/patients', label: 'Patients', icon: Users },
     { to: '/dashboard/vitals', label: 'Vitals', icon: HeartPulse },
+    { to: '/dashboard/vitals/observations', label: 'Observations', icon: ClipboardList },
+    { to: '/dashboard/reports', label: 'Activity', icon: BarChart3 },
   ],
 }
+
+const doctorSections = [
+  {
+    label: 'Clinical Records',
+    items: [
+      { to: '/dashboard/patients', label: 'Patient List', icon: Users },
+      { to: '/dashboard/diagnosis', label: 'Diagnoses', icon: Stethoscope },
+      { to: '/dashboard/clinical/history', label: 'Medical History', icon: History },
+    ],
+  },
+  {
+    label: 'Clinical tools',
+    items: [
+      { to: '/dashboard/vitals', label: 'Vitals', icon: HeartPulse },
+      { to: '/dashboard/clinical/insights', label: 'AI Insights', icon: Activity },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { to: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
+      { to: '/dashboard/reports', label: 'Activity', icon: Activity },
+    ],
+  },
+]
 
 export default function Sidebar() {
   const { profile } = useAuth()
   const rawRole = profile?.role
   const role = rawRole ? String(rawRole).trim().toLowerCase() : 'receptionist'
-  const navItems = [...commonItems, ...(roleItems[role] || roleItems.receptionist)]
+  const visibleCommonItems = commonItems.filter((item) => {
+    if (role === 'doctor') return item.to === '/dashboard'
+    return !['admin', 'lab_technician'].includes(role) || item.to !== '/dashboard/qr/scan'
+  })
+  const navItems = [...visibleCommonItems, ...(roleItems[role] || roleItems.receptionist)]
+
+  const renderNavItem = (item) => (
+    <NavLink
+      key={`${item.to}-${item.label}`}
+      to={item.to}
+      end={item.to === '/dashboard'}
+      className={({ isActive }) =>
+        `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+          isActive
+            ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
+            : 'text-white hover:bg-sky-700 hover:text-cyan-100'
+        }`
+      }
+    >
+      <item.icon className="h-4 w-4" />
+      {item.label}
+    </NavLink>
+  )
 
   return (
     <aside className="fixed left-0 top-24 h-[calc(100vh-6rem)] w-60 overflow-y-auto border-r border-sky-700 bg-sky-600 text-white shadow-xl">
@@ -65,23 +121,17 @@ export default function Sidebar() {
         </section>
 
         <nav className="space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
-                    : 'text-white hover:bg-sky-700 hover:text-cyan-100'
-                }`
-              }
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </NavLink>
-          ))}
+          {role === 'doctor' ? (
+            <>
+              {navItems.map(renderNavItem)}
+              {doctorSections.map((section) => (
+                <div key={section.label} className="pt-4 first:pt-2">
+                  <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-200/80">{section.label}</p>
+                  <div className="space-y-1">{section.items.map(renderNavItem)}</div>
+                </div>
+              ))}
+            </>
+          ) : navItems.map(renderNavItem)}
         </nav>
 
         <div className="mt-6 rounded-lg border border-sky-700 bg-sky-700/80 p-3 text-xs text-white">

@@ -176,7 +176,7 @@ export default function Dashboard() {
       ]
     : [
         { title: 'Manage Patients', description: 'View, add, and update patient records.', href: '/dashboard/patients', icon: Users },
-        { title: 'Diagnosis', description: 'Create and manage patient diagnoses.', href: '/dashboard/diagnosis', icon: Stethoscope },
+        { title: 'Diagnosis', description: 'Review patients and document diagnoses.', href: '/dashboard/diagnosis', icon: Stethoscope },
         { title: 'QR Scanner', description: 'Quickly access patient information.', href: '/dashboard/qr/scan', icon: QrCode },
       ]
 

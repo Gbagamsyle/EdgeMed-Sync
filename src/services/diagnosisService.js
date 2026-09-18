@@ -64,6 +64,16 @@ export const diagnosisService = {
     return Array.isArray(payload) ? payload : payload.records || []
   },
 
+  getAllDiagnoses: async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const response = await fetch(`${API_BASE}/records?limit=100`, {
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+    })
+    const payload = await response.json()
+    if (!response.ok) throw new Error(payload.error || 'Unable to load diagnoses')
+    return payload.records || []
+  },
+
   saveDiagnosis: async ({
     patient_did,
     doctor_id,

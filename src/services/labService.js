@@ -24,6 +24,8 @@ export const createLabRequest = (payload) => request('/lab/requests', {
 
 export const getLabQueue = () => request('/lab/requests/queue')
 
+export const getLabResults = () => request('/lab/results')
+
 export const getLabRequest = (requestId) => request(`/lab/requests/${requestId}`)
 
 export const getPatientLabRequests = (patientId) => request(`/lab/patients/${patientId}/requests`)

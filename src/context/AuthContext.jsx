@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = async (id) => {
+  const fetchProfile = async (id, authUser = null) => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -18,11 +18,21 @@ export function AuthProvider({ children }) {
 
     if (error) {
       console.error('fetchProfile error:', error)
-      setProfile(null)
+      setProfile({
+        id,
+        full_name: authUser?.user_metadata?.full_name || authUser?.email || 'Staff member',
+        role: authUser?.user_metadata?.role || 'receptionist',
+        is_staff: true,
+      })
       return
     }
 
-    setProfile(data ?? null)
+    setProfile(data || {
+      id,
+      full_name: authUser?.user_metadata?.full_name || authUser?.email || 'Staff member',
+      role: authUser?.user_metadata?.role || 'receptionist',
+      is_staff: true,
+    })
   }
 
   const login = async ({ email, password }) => {
@@ -30,7 +40,7 @@ export function AuthProvider({ children }) {
     if (error) throw error
     setUser(data.user ?? null)
     if (data.user) {
-      await fetchProfile(data.user.id)
+      await fetchProfile(data.user.id, data.user)
     }
     return data
   }
@@ -49,7 +59,7 @@ export function AuthProvider({ children }) {
       setUser(sessionUser)
 
       if (sessionUser) {
-        await fetchProfile(sessionUser.id)
+        await fetchProfile(sessionUser.id, sessionUser)
       }
 
       setLoading(false)
@@ -61,7 +71,7 @@ export function AuthProvider({ children }) {
       const sessionUser = session?.user ?? null
       setUser(sessionUser)
       if (sessionUser) {
-        void fetchProfile(sessionUser.id)
+        void fetchProfile(sessionUser.id, sessionUser)
       } else {
         setProfile(null)
       }
